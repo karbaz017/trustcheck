@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "build": "tsc --noEmit",
+    "build": "tsc --noEmit && tsx src/addons/scamsos/validatePlaybook.ts",
+    "check:playbook": "tsx src/addons/scamsos/validatePlaybook.ts",
     "test": "vitest run",
     "eval": "tsx src/eval.ts",
     "demo:warm": "tsx src/warmDemo.ts",

@@ -9,6 +9,9 @@ import { startCheck } from "../runner.js";
 import { features, isOn, type Feature } from "./flags.js";
 import { parseEmail } from "./emailCheck/parse.js";
 import { redact } from "./emailCheck/redact.js";
+import { buildPlan, caseSummary, DISCLAIMER, GENTLE, signsFor, SUPPORTIVE, type Answers } from "./scamsos/playbook.js";
+import { rephrasePlan } from "./scamsos/rephrase.js";
+import { idsOf } from "./scamsos/questions.js";
 import { computeSignals, EMAIL_LIMITATIONS, summarize } from "./emailCheck/signals.js";
 
 export const addons = Router();
@@ -75,5 +78,32 @@ addons.post("/email-check", gate("emailCheck"), limiter, optionalAuth, (req, res
     } catch {
       res.status(400).json({ error: "We couldn't read that file as an email." });
     }
+  });
+});
+
+// ---- C. ScamSOS: rules decide the steps; the model may only reword them. Nothing is stored or logged. ----
+const scamBody = z.object({
+  happened: z.array(z.enum(idsOf("happened"))).min(1).max(6),
+  method: z.enum(idsOf("method")),
+  amount: z.enum(idsOf("amount")),
+  when: z.enum(idsOf("when")),
+  contact: z.enum(idsOf("contact")),
+  distress: z.boolean().optional(),
+});
+
+addons.post("/scamsos", gate("scamsos"), limiter, async (req, res) => {
+  const parsed = scamBody.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Please answer all five questions." });
+  const answers: Answers = parsed.data;
+  const base = buildPlan(answers);
+  const { plan, rephrased } = await rephrasePlan(base);
+  res.json({
+    plan,
+    rephrased,
+    summary: caseSummary(answers, plan),
+    signs: signsFor(answers),
+    gentle: GENTLE,
+    supportive: answers.distress ? SUPPORTIVE : null,
+    disclaimer: DISCLAIMER,
   });
 });

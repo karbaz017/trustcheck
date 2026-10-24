@@ -3,4 +3,4 @@ const ENV: Record<Feature, string> = { calculators: "FEATURE_CALCULATORS", email
 
 /** Read at call time so tests and restarts see changes. Anything other than "true"/"1" is off. */
 export const isOn = (f: Feature): boolean => ["true", "1"].includes((process.env[ENV[f]] ?? "").toLowerCase());
-export const features = () => ({ calculators: isOn("calculators"), emailCheck: isOn("emailCheck"), scamsos: false });
+export const features = () => ({ calculators: isOn("calculators"), emailCheck: isOn("emailCheck"), scamsos: isOn("scamsos") });
