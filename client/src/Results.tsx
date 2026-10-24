@@ -67,6 +67,7 @@ function EvidenceItem({ e }: { e: Evidence }) {
         <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold ${TIER[e.tier].cls}`} title={TIER[e.tier].text}>
           <TierDots tier={e.tier} /> {TIER[e.tier].short}
         </span>
+        {e.live && <span className="inline-flex items-center gap-1 rounded-full border border-violet-700 bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-900" title="Fetched directly from a data source (price feed, SEC filing or Federal Reserve data), not a web search result">⚡ Live data</span>}
         <span className={`text-xs font-bold ${st[2]}`}>{st[0]} {st[1]}</span>
         <span className="truncate text-xs text-slate-600">{e.domain}</span>
         <span className="ml-auto font-mono text-[10px] text-slate-400">{e.id}</span>
