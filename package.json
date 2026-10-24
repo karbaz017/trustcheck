@@ -1,0 +1,15 @@
+{
+  "name": "trustcheck",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "test": "npm test -w server",
+    "eval": "npm run eval -w server",
+    "demo:warm": "npm run demo:warm -w server",
+    "build": "npm run build -w client && npm run build -w server"
+  }
+}
