@@ -56,3 +56,10 @@
 ## Evidence strength gauge (user request)
 - The spec's evidence-strength formula scores refuted claims 0, so a claim clearly contradicted by strong sources showed "Insufficient". The gauge now shows **decisiveness** instead (`decisiveScores` in `thresholds.json`: supported 100, refuted 100, mixed 50, unverifiable 0) plus a direction line (mostly supports / mostly contradicts / mixed / mostly unconfirmed).
 - The spec's support score is still computed and stored as `strength` for history and compatibility. Label rules never used it, so labels are unchanged.
+
+## News alerts (user request)
+- **Sources**: Google News RSS search (no key) and the SEC EDGAR company 8-K Atom feed (only with `SEC_USER_AGENT`; the SEC rejects undeclared automated clients). Google News RSS is intended for personal, non-commercial use: we show only headline, outlet, time and a link, never article text. GDELT did not respond reliably in testing and Yahoo's per-ticker RSS returned 404, so neither is used.
+- **Reliability filter**: the publisher URL in each RSS item is tiered with the same `sourceTiers.json` as claim checks; only Tier 1/2 items are shown. Articles are never fetched.
+- **Relevance**: the first live run returned unrelated Yahoo items (e.g. a Nike story for NVDA) and options-quote pages. Each topic now gets 2-5 aliases from one small model call (cached a day; falls back to the topic), the Google query uses those aliases, and a headline must name one of them on a word boundary (short aliases like "Fed" are case-sensitive). Quote-page junk is filtered by pattern.
+- **Alerts**: in-app only, while a TrustCheck tab is open: polling every 3 minutes when the tab is visible, an unread count in the nav, and optional browser notifications (asked only on a click; at most 3 per check). No server-side scheduler, email or SMS. Watchlist and seen items live in localStorage; nothing is stored on the server.
+- **Headlines as claims**: extraction now treats a headline's implied assertion as a claim, reads price idioms ("X loses $80,000" = fell below $80,000), and keeps time/amount qualifiers attached instead of splitting them into fragments.
