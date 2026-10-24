@@ -33,7 +33,7 @@ export const geminiSearch: SearchProvider = {
     const res = await callModel(
       {
         systemInstruction: {
-          parts: [{ text: "You are a neutral research tool. Search the web and report ONLY what sources state: specific numbers, dates, names. No opinions, no advice, no speculation. If sources disagree or say nothing relevant, say so plainly." }],
+          parts: [{ text: "You are a neutral research tool. Search the web and report ONLY what sources state: specific numbers, dates, names. Prefer primary sources (regulators, government statistics, company filings and investor-relations pages) and established news organizations (Reuters, AP, Bloomberg, The Wall Street Journal, Financial Times, CNBC). Avoid blogs, forums, social media and content farms. No opinions, no advice, no speculation. If sources disagree or say nothing relevant, say so plainly." }],
         },
         contents: [{ role: "user", parts: [{ text: `Find what reliable sources say about: ${query}` }] }],
         tools: [{ google_search: {} }],
