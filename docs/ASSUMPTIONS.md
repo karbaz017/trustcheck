@@ -43,3 +43,11 @@
 - **Analyst ratings** are shown as reported ("consensus Buy") under a "Not our view, and not a recommendation" heading. Remove that section if the team thinks it reads as advice.
 - **Performance and cost**: about 30-45 s and two model calls per briefing; results are cached in memory for 10 minutes per query; 5 briefings per minute per IP. Queries are never logged.
 - **Hand-off from a claim** uses sessionStorage, not the URL, so claim text never lands in browser history.
+
+## Live data tools (user request)
+- **Why**: web search snippets are second-hand. For prices, company events and macro figures, primary data is better.
+- **How**: Gemini function calling picks tools for each checkable claim (max 3, `toolConfig` AUTO, thinking off). Code validates every call against an allow-list and argument schemas, builds the request URLs itself, and turns results into evidence with code-formatted text. The model never sees API keys and never makes a request.
+- **Verdicts unchanged**: tool evidence is classified by the same stance step and weighed by the same verdict engine. Tiers: FRED (stlouisfed.org) and SEC (sec.gov) Tier 1, Finnhub and CoinGecko Tier 2 as market data feeds.
+- **Not used**: Stooq (free quotes) is behind a JavaScript bot challenge, which we do not try to get around.
+- **SEC**: the SEC fair-access policy asks automated clients to send a User-Agent naming the app and a contact address. The tool stays off until `SEC_USER_AGENT` is set; filing URLs are built only from validated EDGAR fields.
+- **Search preference**: the web search prompt now asks for primary sources and established news organizations first. Code tiering is unchanged and still decides what counts.
