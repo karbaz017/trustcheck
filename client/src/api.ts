@@ -66,13 +66,14 @@ export async function deleteCheck(id: string): Promise<void> {
   if (!res.ok) throw new Error("Couldn't delete that check.");
 }
 
-export interface Features { calculators: boolean; emailCheck: boolean; scamsos: boolean; market: boolean }
-export async function getFeatures(): Promise<Features> {
+export interface Features { calculators: boolean; emailCheck: boolean; scamsos: boolean; market: boolean; news?: boolean; liveData?: boolean }
+/** Returns null if the server can't be reached, so the caller can retry. */
+export async function getFeatures(): Promise<Features | null> {
   try {
     const res = await fetch("/api/features");
-    return res.ok ? res.json() : { calculators: false, emailCheck: false, scamsos: false, market: false };
+    return res.ok ? res.json() : null;
   } catch {
-    return { calculators: false, emailCheck: false, scamsos: false, market: false };
+    return null;
   }
 }
 

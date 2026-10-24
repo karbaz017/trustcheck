@@ -3,6 +3,8 @@ import type { CheckResult } from "../../server/src/types";
 import { getCheck, getFeatures, startCheck, streamProgress, type Features } from "./api";
 import EmailCheck from "./EmailCheck";
 import Market from "./Market";
+import News from "./News";
+import { fetchNews, loadSeen, loadWatchlist, POLL_MS, saveSeen, saveWatchlist, type NewsItem } from "./newsStore";
 import ScamSOS from "./ScamSOS";
 import AuthControls from "./Auth";
 import History from "./History";
@@ -32,8 +34,70 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   const [result, setResult] = useState<CheckResult | null>(null);
   const [error, setError] = useState("");
   const abort = useRef<AbortController | null>(null);
-  const [features, setFeatures] = useState<Features>({ calculators: false, emailCheck: false, scamsos: false, market: false });
-  useEffect(() => { void getFeatures().then(setFeatures); }, []);
+  const [features, setFeatures] = useState<Features>({ calculators: false, emailCheck: false, scamsos: false, market: false, news: false });
+  useEffect(() => {
+    // Retry with backoff: if the first request fails (server restarting, flaky network) the add-ons would otherwise stay hidden.
+    let cancelled = false;
+    let delay = 1000;
+    const load = async () => {
+      const f = await getFeatures();
+      if (cancelled) return;
+      if (f) return setFeatures(f);
+      if (delay <= 30_000) setTimeout(load, (delay *= 2));
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ---- News alerts: poll while the app is open, on any page ----
+  const [watchlist, setWatchlistState] = useState<string[]>(loadWatchlist);
+  const [news, setNews] = useState<{ items: NewsItem[]; fetchedAt: string | null; filingsEnabled: boolean }>({ items: [], fetchedAt: null, filingsEnabled: false });
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsErr, setNewsErr] = useState("");
+  const firstPoll = useRef(true);
+  const setWatchlist = (w: string[]) => { setWatchlistState(w); saveWatchlist(w); firstPoll.current = true; };
+  async function pollNews() {
+    if (!watchlist.length) return setNews((n) => ({ ...n, items: [] }));
+    setNewsLoading(true);
+    try {
+      const r = await fetchNews(watchlist);
+      const seen = loadSeen();
+      const fresh = r.items.filter((i) => !seen.has(i.id));
+      setNews({ items: r.items, fetchedAt: r.fetchedAt, filingsEnabled: r.filingsEnabled });
+      setNewIds(new Set(fresh.map((i) => i.id)));
+      setNewsErr("");
+      // Notify only about items that arrive after the first load, and never for more than 3 at once.
+      if (!firstPoll.current && fresh.length && typeof Notification !== "undefined" && Notification.permission === "granted") {
+        for (const i of fresh.slice(0, 3)) {
+          const note = new Notification(`TrustCheck · ${i.topic}`, { body: `${i.source}: ${i.title}`, tag: i.id });
+          note.onclick = () => { window.focus(); window.location.hash = "#/news"; };
+        }
+      }
+      if (firstPoll.current) { fresh.forEach((i) => seen.add(i.id)); saveSeen(seen); }
+      firstPoll.current = false;
+    } catch (e) {
+      setNewsErr((e as Error).message);
+    } finally {
+      setNewsLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (!features.news) return;
+    void pollNews();
+    const t = setInterval(() => { if (document.visibilityState === "visible") void pollNews(); }, POLL_MS);
+    return () => clearInterval(t);
+  }, [features.news, watchlist.join("|")]);
+  // Opening the News page marks everything as seen.
+  useEffect(() => {
+    if (hash !== "#/news" || !newIds.size) return;
+    const seen = loadSeen();
+    news.items.forEach((i) => seen.add(i.id));
+    saveSeen(seen);
+    const t = setTimeout(() => setNewIds(new Set()), 8000);
+    return () => clearTimeout(t);
+  }, [hash, newIds.size]);
+  const unread = hash === "#/news" ? 0 : newIds.size;
 
   async function waitForResult(id: string) {
     for (let i = 0; i < 60; i++) {
@@ -45,12 +109,12 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
     throw new Error("This is taking longer than expected. Please try again.");
   }
 
-  async function run() {
+  async function run(textOverride?: string) {
     setError(""); setResult(null); setStages({}); setBusy(true);
     abort.current?.abort();
     const ac = (abort.current = new AbortController());
     try {
-      const id = await startCheck(mode === "url" ? { url: input.trim() } : { text: input.trim() });
+      const id = await startCheck(textOverride !== undefined ? { text: textOverride } : mode === "url" ? { url: input.trim() } : { text: input.trim() });
       await streamProgress(id, (e) => {
         if (e.stage === "error") setError(e.message ?? "Something went wrong.");
         else setStages((s) => applyEvent(s, e));
@@ -84,6 +148,11 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
             TrustCheck
           </a>
           <nav aria-label="Main" className="flex items-center gap-3 text-sm font-medium">
+            {features.news && (
+              <a href="#/news" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/news" ? "underline" : ""}`}>
+                News{unread > 0 && <span className="ml-1 rounded-full bg-orange-600 px-1.5 py-0.5 text-xs font-bold text-[#fff]" aria-label={`${unread} new`}>{unread}</span>}
+              </a>
+            )}
             {features.market && <a href="#/market" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/market" ? "underline" : ""}`}>Markets</a>}
             {features.scamsos && <a href="#/scamsos" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/scamsos" ? "underline" : ""}`}>ScamSOS</a>}
             {features.emailCheck && <a href="#/email" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/email" ? "underline" : ""}`}>Email check</a>}
@@ -94,7 +163,11 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
       </header>
 
       <main id="main" className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-6 pb-24">
-        {hash === "#/market" && features.market ? (
+        {hash === "#/news" && features.news ? (
+          <News items={news.items} newIds={newIds} watchlist={watchlist} setWatchlist={setWatchlist} fetchedAt={news.fetchedAt} loading={newsLoading}
+            error={newsErr} filingsEnabled={news.filingsEnabled} onRefresh={() => void pollNews()}
+            onCheck={(t) => { setMode("text"); setInput(t); window.location.hash = "#/"; void run(t); }} />
+        ) : hash === "#/market" && features.market ? (
           <Market />
         ) : hash === "#/scamsos" && features.scamsos ? (
           <ScamSOS />
