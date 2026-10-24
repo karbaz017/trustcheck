@@ -15,6 +15,9 @@ import { idsOf } from "./scamsos/questions.js";
 import { researchMarket } from "./market/research.js";
 import { emptyBrief, structureBrief } from "./market/structure.js";
 import type { MarketBrief } from "./market/types.js";
+import { newsFor } from "./news/feeds.js";
+import type { NewsResponse } from "./news/types.js";
+import { secAvailable } from "../tools/sec.js";
 import { computeSignals, EMAIL_LIMITATIONS, summarize } from "./emailCheck/signals.js";
 
 export const addons = Router();
@@ -132,4 +135,19 @@ addons.post("/market-brief", gate("market"), marketLimiter, async (req, res) => 
     console.error(`[market] failed: ${(e as Error).message}`); // never log the query
     res.status(502).json({ error: "We couldn't build a briefing right now. Please try again in a moment." });
   }
+});
+
+// ---- F. News alerts: latest headlines from reliable outlets and SEC filings for a watchlist ----
+const newsLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: true, legacyHeaders: false, message: { error: "Too many refreshes. Please wait a minute." } });
+const newsBody = z.object({ topics: z.array(z.string().trim().min(2).max(60).regex(/^[\p{L}\p{N} .&'\-]+$/u)).min(1).max(10) });
+
+addons.post("/news", gate("news"), newsLimiter, async (req, res) => {
+  const parsed = newsBody.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Add 1 to 10 topics (letters, numbers, spaces)." });
+  const topics = [...new Set(parsed.data.topics)];
+  const lists = await Promise.all(topics.map((t) => newsFor(t)));
+  const seen = new Set<string>();
+  const items = lists.flat().filter((n) => (seen.has(n.id) ? false : (seen.add(n.id), true))).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 60);
+  const body: NewsResponse = { items, fetchedAt: new Date().toISOString(), filingsEnabled: secAvailable() };
+  res.json(body);
 });
