@@ -1,0 +1,12 @@
+{
+  "tierWeights": { "1": 3, "2": 2, "3": 0.5 },
+  "tier3Cap": 1.0,
+  "supportedMinS": 3,
+  "supportedMaxC": 1,
+  "refutedMinC": 3,
+  "refutedMaxS": 1,
+  "claimScores": { "supported": 100, "mixed": 50, "unverifiable": 25, "refuted": 0 },
+  "bands": { "strong": 75, "moderate": 50, "weak": 25 },
+  "needsCheckingHypeFlags": 3,
+  "holdsUpMaxHypeFlags": 1
+}
