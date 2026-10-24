@@ -1,0 +1,107 @@
+import { randomUUID } from "node:crypto";
+import type { CheckResult, ClaimResult, Evidence, ExtractedClaim, ProgressEvent, StageName } from "../types.js";
+import { retrieveEvidence } from "../search/retrieve.js";
+import { aggregate, buildLimitations, buildReasons } from "./aggregate.js";
+import { classifyStance } from "./classifyStance.js";
+import { writeExplanations } from "./explain.js";
+import { extractClaims } from "./extractClaims.js";
+import { hypeFlags } from "./hypeFlags.js";
+import { mathCheck } from "./mathCheck.js";
+import { applyTiers } from "./tierSources.js";
+import { decideVerdict } from "./verdict.js";
+
+export const MAX_INPUT_CHARS = 8000;
+type Progress = (e: ProgressEvent) => void;
+
+export interface PipelineDeps {
+  extract: (text: string) => Promise<ExtractedClaim[]>;
+  retrieve: (queries: string[]) => Promise<Evidence[]>;
+  stance: (claim: string, evidence: Evidence[]) => Promise<Evidence[]>;
+  explain: typeof writeExplanations;
+}
+const realDeps: PipelineDeps = { extract: extractClaims, retrieve: retrieveEvidence, stance: classifyStance, explain: writeExplanations };
+
+export async function runPipeline(
+  text: string,
+  opts: { id?: string; onProgress?: Progress; timings?: Record<string, number>; deps?: PipelineDeps; extraLimitations?: string[] } = {},
+): Promise<CheckResult> {
+  const deps = opts.deps ?? realDeps;
+  const timings = opts.timings ?? {};
+  const emit = opts.onProgress ?? (() => {});
+  const limitationsExtra: string[] = [...(opts.extraLimitations ?? [])];
+
+  async function stage<T>(name: StageName, fn: () => Promise<T> | T): Promise<T> {
+    emit({ stage: name, status: "start" });
+    const t0 = Date.now();
+    try {
+      const out = await fn();
+      timings[name] = Date.now() - t0;
+      emit({ stage: name, status: "done", ms: timings[name] });
+      return out;
+    } catch (e) {
+      timings[name] = Date.now() - t0;
+      emit({ stage: name, status: "error", ms: timings[name] });
+      throw e;
+    }
+  }
+
+  const extracted = await stage("extract", () => deps.extract(text));
+  const maths = await stage("math", () => extracted.map((c) => mathCheck(c)));
+
+  const searched = await stage("search", () =>
+    Promise.all(
+      extracted.map(async (c, i): Promise<{ evidence: Evidence[]; failed: boolean }> => {
+        if (c.type === "forecast" || c.type === "opinion") return { evidence: [], failed: false };
+        try {
+          return { evidence: await deps.retrieve(c.queries), failed: false };
+        } catch {
+          return { evidence: [], failed: true };
+        }
+      }),
+    ),
+  );
+  const searchFailures = searched.filter((s) => s.failed).length;
+  if (searchFailures) limitationsExtra.push(`Search was unavailable for ${searchFailures} claim${searchFailures === 1 ? "" : "s"}, so ${searchFailures === 1 ? "it is" : "they are"} marked unverifiable.`);
+
+  const tiered = await stage("tier", () => searched.map((s) => applyTiers(s.evidence)));
+
+  const staged = await stage("stance", () =>
+    Promise.all(
+      extracted.map(async (c, i) => {
+        try {
+          return await deps.stance(c.text, tiered[i]);
+        } catch {
+          // Output failed validation after retries: no evidence is trusted, so the claim ends up unverifiable.
+          limitationsExtra.push("For some claims the evidence could not be reliably classified, so they are marked unverifiable.");
+          return tiered[i].map((e) => ({ ...e, stance: "irrelevant" as const }));
+        }
+      }),
+    ),
+  );
+
+  let claims: ClaimResult[] = await stage("verdict", () =>
+    extracted.map((c, i) => ({
+      id: `c${i + 1}`,
+      text: c.text,
+      type: c.type,
+      importance: c.importance,
+      verdict: decideVerdict(c.type, staged[i]).verdict,
+      evidence: staged[i],
+      math: maths[i],
+      why: "",
+    })),
+  );
+
+  const flags = await stage("hype", () => hypeFlags(text));
+  const { strength, label } = await stage("aggregate", () => aggregate(claims, flags.length));
+
+  const reasons = buildReasons(claims, flags, label);
+  const explained = await stage("explain", () => deps.explain(claims, label, strength.score, flags));
+  claims = explained.claims;
+
+  const createdAt = new Date().toISOString();
+  const limitations = buildLimitations(claims, createdAt, [...new Set(limitationsExtra)]);
+  if (claims.length === 0) limitations.push("No money-related claims were found in this text.");
+
+  return { id: opts.id ?? randomUUID(), createdAt, claims, hypeFlags: flags, strength, label, whyOverall: explained.whyOverall, reasons, limitations, timings };
+}
