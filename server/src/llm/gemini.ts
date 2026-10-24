@@ -10,19 +10,26 @@ export interface GenerateOptions<T> {
   /** Extra semantic validation; return an error message or null. */
   validate?: (value: T) => string | null;
   label: string;
+  /** Per-call timeout (default 20s). */
+  timeoutMs?: number;
+  /** 0 turns off model "thinking" for simple reformatting tasks (faster). Omit to use the model default. */
+  thinkingBudget?: number;
 }
 
 const TIMEOUT_MS = 20_000;
 const MAX_RETRIES = 2;
 
-async function callGemini(system: string, user: string, schema: Record<string, unknown>): Promise<string> {
+async function callGemini(system: string, user: string, schema: Record<string, unknown>, timeoutMs = TIMEOUT_MS, thinkingBudget?: number): Promise<string> {
   const res = await callModel(
     {
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: "user", parts: [{ text: user }] }],
-      generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: schema },
+      generationConfig: {
+        temperature: 0, responseMimeType: "application/json", responseSchema: schema,
+        ...(thinkingBudget !== undefined ? { thinkingConfig: { thinkingBudget } } : {}),
+      },
     },
-    TIMEOUT_MS,
+    timeoutMs,
   );
   if (!res.ok) throw new Error(`Vertex AI HTTP ${res.status}`);
   const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
@@ -38,7 +45,7 @@ export async function generateJson<T>(opts: GenerateOptions<T>): Promise<T> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const user = feedback ? `${opts.user}\n\n[PREVIOUS ATTEMPT WAS INVALID: ${feedback}. Fix this and answer again.]` : opts.user;
-      const raw = await callGemini(opts.system, user, opts.responseSchema);
+      const raw = await callGemini(opts.system, user, opts.responseSchema, opts.timeoutMs, opts.thinkingBudget);
       const parsed = opts.parse.safeParse(JSON.parse(raw));
       if (!parsed.success) {
         feedback = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ").slice(0, 400);
