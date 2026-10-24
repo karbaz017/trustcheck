@@ -26,7 +26,8 @@ Optional: `DATABASE_URL` (Postgres), `BRAVE_API_KEY`, Auth0 (`AUTH0_DOMAIN`, `AU
 ## Add-ons (feature flags, default off)
 - `FEATURE_CALCULATORS=true`: "What this implies" cards for savings, fee, interest and loan claims (`server/src/pipeline/calculators.ts`). Runs only on numbers the text states; missing numbers are requested as a clearly labelled assumption. Never changes a verdict.
 - `FEATURE_EMAIL_CHECK=true`: upload a `.eml` file at `#/email` for code-computed warning signs plus a claim check of the redacted body (`server/src/addons/emailCheck/`). Files are processed in memory; attachments and links are never opened or visited. Fill `server/src/config/brandDomains.json` to enable brand-impersonation and look-alike checks.
-- Not built: ScamSOS and the browser extension (see `docs/ASSUMPTIONS.md`).
+- `FEATURE_SCAMSOS=true`: "I think I was scammed" at `#/scamsos`. Five questions, then a calm three-tier plan (now / today / this week) and a copyable case summary. A rules file (`server/src/config/playbook.json`) decides the steps; the model may only reword them, and a guard rejects rewordings that add links, numbers or promises. Every step links to a verified official page or tells the user to use the number on their card or official app. Run `npm run check:playbook -w server` (also part of `npm run build`) after editing the playbook. Nothing is stored.
+- Not built: the browser extension (add-on D).
 
 ## Test, eval, demo
 - `npm test` unit tests (tiers, math, verdicts, aggregation, validators, SSRF)

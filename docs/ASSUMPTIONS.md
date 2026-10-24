@@ -14,7 +14,7 @@
 - **Model default**: `GEMINI_MODEL` has no default in code; set it in `.env`.
 
 ## Add-ons
-- **Scope**: the add-on spec caps add-ons at two. Built A (calculators) and B (email check). C (ScamSOS) and D (extension) are not built.
+- **Scope**: the add-on spec caps add-ons at two. Built A (calculators), B (email check) and, at the user's explicit request, C (ScamSOS). D (extension) is not built.
 - **Gate**: the spec says to start add-ons only after deploy, eval table and demo cache are green. Those weren't yet when these were built (at the user's request). Both are behind flags that default off; turn them off in the demo if they aren't fully verified.
 - **Calculators**: `principal` is required for `compound_growth` (enter 0 as your assumption if starting from nothing). Contributions are end-of-month. `fee_drag` starts from zero. Bounds: rates -99..1000 %, years <= 100, months <= 1200, money <= 1e12; anything outside is rejected.
 - **Calculator extraction**: only fields the text states are kept; unknown model output is dropped. The "assumption" recompute endpoint (`POST /api/calculate`) is stateless and deterministic.
@@ -22,3 +22,13 @@
 - **Redaction**: emails, SSN-like, IPv4/IPv6, phone numbers (9+ digits or a `+`/parentheses), and any 8+ digit run. 7-8 digit local numbers and dates are left alone to avoid destroying claim text.
 - **Email labels**: "Several warning signs" (any high, or 3+ warn), "Some warning signs" (1-2 warn), otherwise "No strong warning signs found in this file". The words "safe" and "legitimate" never appear in output (tested). The no-signs label is deliberately not green in the UI.
 - **Brand lists**: `brandDomains.json` ships empty (the team fills it), so brand-mismatch and look-alike-of-brand signals are inactive until it's populated. Link-text mismatch, shorteners, IP URLs, punycode and mixed-script checks work without it.
+
+## ScamSOS
+- **Sources verified on 2026-10-24** by fetching and reading the pages: FTC "What To Do if You Were Scammed" (payment-method steps, passwords, remote access, keeping receipts and gift cards, reporting), FTC "How To Avoid a Scam" (resist pressure, talk to someone you trust, don't click links in unexpected messages, payment types scammers insist on), FTC "Credit Freezes and Fraud Alerts", ReportFraud.ftc.gov (referenced by the FTC pages), and the FBI's IC3. Re-check before presenting. `annualcreditreport.com` returned a 403 and `identitytheft.gov` returned only a title, so neither is used.
+- **Wording follows the sources.** The FTC "what to do" page does not say to stop contacting the sender or avoid clicking links; those two steps cite "How To Avoid a Scam" instead and are worded to match it ("Stop sending money or information", "talk to someone you trust").
+- **No promises**: no refund rights, deadlines or recovery claims. The validator rejects words like refund, recover, guarantee and "within N days"; steps say "ask whether it can be reversed".
+- **Bank step is not universal.** The spec lists "contact your bank" as always applying. It is dropped for someone who only clicked a link or is just worried, so the first step for them is closing the page or pausing contact.
+- **"When did it happen?"** only appears in the case summary; it does not change the steps.
+- **Distress**: an optional checkbox shows a supportive message encouraging a trusted person and local emergency services if in immediate danger. No hotline numbers are hard-coded.
+- **Model use**: only the static playbook step text is sent for rewording (never the user's answers). Best-effort with an 8 s timeout; on any failure or invalid output the original rule text is shown.
+- **Findings from the first real run**: a company's own site (for example apple.com) is Tier 3 unless it is an `investor.` or `ir.` host, so a claim that only the company's newsroom confirms ends as "can't confirm". Add trusted company domains to `sourceTiers.json` if you want them treated as primary sources.
