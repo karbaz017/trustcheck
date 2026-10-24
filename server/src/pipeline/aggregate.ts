@@ -117,9 +117,15 @@ export function buildReasons(claims: ClaimResult[], hypeFlags: string[], label: 
   }
 
   const unc = claims.filter((c) => c.verdict === "not_checkable");
-  if (unc.length) {
+  if (!scored.length) {
+    // Nothing to score: say so once, in plain words.
+    out.unshift(
+      unc.length
+        ? { kind: "not_checkable", text: `${unc.length === 1 ? "This is a forecast or an opinion" : "These are forecasts or opinions"}, not ${unc.length === 1 ? "a statement" : "statements"} of fact, so no source can confirm or contradict ${unc.length === 1 ? "it" : "them"}. There's nothing here to score.`, decisive: true }
+        : { kind: "unconfirmed", text: "We didn't find any claims in this text to check.", decisive: true },
+    );
+  } else if (unc.length) {
     out.push({ kind: "not_checkable", text: `${unc.length} forecast or opinion claim${unc.length === 1 ? "" : "s"} can't be verified by any source, so ${unc.length === 1 ? "it was" : "they were"} left out of the score.`, decisive: false });
   }
-  if (!scored.length) out.unshift({ kind: "unconfirmed", text: "There were no checkable factual claims, so there's nothing for sources to confirm.", decisive: true });
   return out;
 }

@@ -14,15 +14,15 @@ function Badge({ cls, children }: { cls: string; children: React.ReactNode }) {
   return <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{children}</span>;
 }
 
-function Gauge({ score, band, color }: { score: number; band: string; color: string }) {
+function Gauge({ score, band, color, notScored = false }: { score: number; band: string; color: string; notScored?: boolean }) {
   const L = Math.PI * 80;
   return (
     <div className="mx-auto w-56">
-      <svg viewBox="0 0 180 104" role="meter" aria-label="Evidence strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={score} aria-valuetext={`${BAND[band]}, score ${score} out of 100`} className="w-full">
+      <svg viewBox="0 0 180 104" role="meter" aria-label="Evidence strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={notScored ? undefined : score} aria-valuetext={notScored ? "Not scored: nothing here can be checked against sources" : `${BAND[band]}, score ${score} out of 100`} className="w-full">
         <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke="var(--color-slate-200)" strokeWidth="14" strokeLinecap="round" />
-        <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" strokeDasharray={L} strokeDashoffset={L * (1 - score / 100)} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
-        <text x="90" y="74" textAnchor="middle" fontSize="24" fontWeight="800" fill="var(--color-slate-900)">{BAND[band]}</text>
-        <text x="90" y="94" textAnchor="middle" fontSize="11" fill="var(--color-slate-600)">score {score}/100</text>
+        <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" strokeDasharray={L} strokeDashoffset={L * (1 - (notScored ? 0 : score) / 100)} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+        <text x="90" y="74" textAnchor="middle" fontSize="24" fontWeight="800" fill="var(--color-slate-900)">{notScored ? "Not scored" : BAND[band]}</text>
+        <text x="90" y="94" textAnchor="middle" fontSize="11" fill="var(--color-slate-600)">{notScored ? "nothing checkable" : `score ${score}/100`}</text>
       </svg>
       <p className="-mt-1 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Evidence strength</p>
     </div>
@@ -211,6 +211,7 @@ export default function Results({ r, scamsos = false }: { r: CheckResult; scamso
   const o = OVERALL[r.label];
   const checkable = r.claims.filter((c) => c.verdict !== "not_checkable");
   const uncheckable = r.claims.filter((c) => c.verdict === "not_checkable");
+  const notScored = checkable.length === 0;
   return (
     <section aria-labelledby="results-h" className="space-y-6">
       <h2 id="results-h" className="sr-only">Results</h2>
@@ -223,12 +224,12 @@ export default function Results({ r, scamsos = false }: { r: CheckResult; scamso
               <span aria-hidden className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-3xl font-black text-[#fff]" style={{ background: o.accent }}>{o.icon}</span>
               <div>
                 <p className="text-3xl font-extrabold leading-tight sm:text-4xl">{o.text}</p>
-                <p className="text-sm text-slate-700">{o.sub}</p>
+                <p className="text-sm text-slate-700">{notScored ? "Nothing here can be checked against sources" : o.sub}</p>
               </div>
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-900">{r.whyOverall}</p>
           </div>
-          <div className="self-center rounded-xl bg-white/70 p-3"><Gauge score={r.strength.score} band={r.strength.band} color={o.accent} /></div>
+          <div className="self-center rounded-xl bg-white/70 p-3"><Gauge score={r.strength.score} band={r.strength.band} color={o.accent} notScored={notScored} /></div>
         </div>
         <div className="border-t border-black/10 bg-white/60 px-5 py-3 sm:px-7"><CopyLink id={r.id} /></div>
         {r.reasons && <Reasons reasons={r.reasons} title={r.label === "doesnt_hold_up" ? "Why it doesn't hold up" : r.label === "holds_up" ? "Why it holds up" : "Why it needs checking"} />}

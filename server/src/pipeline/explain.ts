@@ -39,6 +39,8 @@ export function validateExplanations(out: Out, claims: ClaimResult[]): string | 
   if (claims.some((c) => !seen.has(c.id))) return "missing explanation for some claims";
   if (wordCount(out.whyOverall) > 130) return "whyOverall too long (max 120 words)";
   if (/\be\d+\b/.test(out.whyOverall)) return "whyOverall must not cite evidence ids";
+  const internal = [out.whyOverall, ...out.claims.map((c) => c.why)].find((t) => /\b[a-z]+_[a-z_]+\b/.test(t));
+  if (internal) return "uses an internal code name (like needs_checking); use plain words such as 'needs checking'";
   if (containsAdvice(out.whyOverall)) return "whyOverall contains advice phrasing";
   return null;
 }
