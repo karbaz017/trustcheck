@@ -21,7 +21,7 @@ npm install
 npm run dev:server       # :8787
 npm run dev:client       # :5173 (proxies /api)
 ```
-Optional: `DATABASE_URL` (Postgres), `BRAVE_API_KEY`, Auth0 (`AUTH0_DOMAIN`, `AUTH0_AUDIENCE` on the server; `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE` in `client/.env`).
+Optional: `DATABASE_URL` (Postgres; e.g. `createdb trustcheck_dev` then `DATABASE_URL=postgresql://localhost:5432/trustcheck_dev`; tables are created on boot), `BRAVE_API_KEY`, Auth0 (`AUTH0_DOMAIN`, `AUTH0_AUDIENCE` on the server; `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE` in `client/.env`).
 
 ## Add-ons (feature flags, default off)
 - `FEATURE_CALCULATORS=true`: "What this implies" cards for savings, fee, interest and loan claims (`server/src/pipeline/calculators.ts`). Runs only on numbers the text states; missing numbers are requested as a clearly labelled assumption. Never changes a verdict.
