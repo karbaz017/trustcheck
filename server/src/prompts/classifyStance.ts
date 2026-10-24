@@ -1,4 +1,5 @@
 import type { Evidence } from "../types.js";
+import { todayLine } from "./today.js";
 
 export const stanceSystem = `You classify how each retrieved source snippet relates to ONE claim.
 
@@ -12,7 +13,7 @@ RULES
 - Return one entry for every snippet id given, and no other ids.`;
 
 export const stanceUser = (claim: string, evidence: Evidence[]) =>
-  `<<<CLAIM>>>\n${claim}\n<<<END_CLAIM>>>\n<<<SNIPPETS>>>\n${evidence
+  `${todayLine()}\n<<<CLAIM>>>\n${claim}\n<<<END_CLAIM>>>\n<<<SNIPPETS>>>\n${evidence
     .map((e) => `[${e.id}] (${e.domain}) ${e.title}\n${e.snippet}`)
     .join("\n---\n")}\n<<<END_SNIPPETS>>>`;
 

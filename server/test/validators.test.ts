@@ -44,3 +44,15 @@ describe("hype flags", () => {
     expect(hypeFlags("a 110x return and secretary")).toEqual([]);
   });
 });
+
+describe("prompts carry today's date", async () => {
+  const { extractUser } = await import("../src/prompts/extractClaims.js");
+  const { stanceUser } = await import("../src/prompts/classifyStance.js");
+  const { explainUser } = await import("../src/prompts/explain.js");
+  const today = new Date().toISOString().slice(0, 10);
+  it("extraction, stance and explanation prompts include the real date", () => {
+    expect(extractUser("x", new Date("2026-10-24T12:00:00Z"))).toContain("Today's date is 2026-10-24");
+    expect(stanceUser("c", [])).toContain(`Today's date is ${today}`);
+    expect(explainUser([], "needs_checking", 0, [])).toContain(`Today's date is ${today}`);
+  });
+});

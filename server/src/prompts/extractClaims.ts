@@ -1,3 +1,5 @@
+import { todayLine } from "./today.js";
+
 export const extractSystem = `You extract factual claims from text about money, investing, or personal finance.
 
 RULES
@@ -5,14 +7,14 @@ RULES
 - Extract only what the text explicitly states. Do not add claims the text does not make.
 - Split compound claims into separate claims. Maximum 8 claims.
 - Do NOT judge whether any claim is true.
-- type: "checkable_fact" (past/present statement sources could confirm or contradict), "numeric" (checkable fact with numbers, e.g. "turned $1,000 into $10,000 in 30 days"), "forecast" (about the future), "opinion" (value judgment or recommendation).
+- type: "checkable_fact" (past/present statement sources could confirm or contradict), "numeric" (checkable fact with numbers, e.g. "turned $1,000 into $10,000 in 30 days"), "forecast" (about the future, i.e. after today's date; a past-tense statement about something on or before today is a checkable_fact even if you have never heard of it), "opinion" (value judgment or recommendation).
 - importance: 3 = central to the text, 2 = supporting, 1 = minor.
 - numeric: only for type "numeric". kind "multiple" means the value is a multiplier (doubled = 2, $1,000 to $10,000 = 10). kind "return_pct" means a percentage return (50% gain = 50). periodDays is the time period in days. Omit numeric if the text gives no period or no clear number.
 - queries: exactly 2 neutral search queries per claim. The first should be phrased to find confirming evidence, the second to find contradicting evidence. Never leading or loaded wording. Keep each under 12 words.
 - Questions and hedged phrasing count. If the text asks whether something is true or a good idea ("Is X a good stock to buy?", "NVDA is gonna fall?", "X will boom because of Y?"), extract the assertion it asks about as a statement: "X is a good stock to buy" (type opinion), "NVDA will fall" (type forecast). Keep the user's own subject, numbers and timeframe; add nothing else.
 - Only return an empty claims array if the text has nothing about money, investing, prices, or personal finance.`;
 
-export const extractUser = (text: string) => `<<<USER_TEXT>>>\n${text}\n<<<END_USER_TEXT>>>`;
+export const extractUser = (text: string, now = new Date()) => `${todayLine(now)}\n<<<USER_TEXT>>>\n${text}\n<<<END_USER_TEXT>>>`;
 
 export const extractSchema = {
   type: "OBJECT",
