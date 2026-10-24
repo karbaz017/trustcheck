@@ -78,6 +78,13 @@ describe("buildReasons", () => {
     expect(r.find((x) => x.kind === "contradicted")!.decisive).toBe(false);
     expect(r.find((x) => x.kind === "hype")!.decisive).toBe(false);
   });
+  it("all forecasts/opinions: one plain, decisive reason (no duplicate, no 'no checkable claims' wording)", () => {
+    const r = buildReasons([{ ...c("not_checkable", 3), type: "opinion" }], [], "needs_checking");
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ kind: "not_checkable", decisive: true });
+    expect(r[0].text).toMatch(/opinion/);
+    expect(buildReasons([], [], "needs_checking")[0].text).toMatch(/didn't find any claims/);
+  });
   it("never emits advice phrasing", async () => {
     const { containsAdvice } = await import("../src/pipeline/validators.js");
     const all = buildReasons([{ ...c("refuted"), evidence: [evd("e1", "sec.gov", 1, "contradicts")] }, c("mixed", 2), c("unverifiable", 1)], ["guaranteed", "secret"], "doesnt_hold_up");

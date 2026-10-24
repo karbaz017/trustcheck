@@ -43,6 +43,8 @@ describe("explanation validation", () => {
     expect(validateExplanations({ claims: [], whyOverall: "ok" }, [claim])).toMatch(/missing/);
     expect(validateExplanations({ claims: [{ id: "c1", why: "Backed by [e1]." }], whyOverall: "Holds up, see e1" }, [claim])).toMatch(/ids/);
     expect(validateExplanations({ claims: [{ id: "c1", why: "Backed by [e1]." }], whyOverall: "Looks well supported." }, [claim])).toBeNull();
+    expect(validateExplanations({ claims: [{ id: "c1", why: "Backed by [e1]." }], whyOverall: "The result is 'needs_checking' because it is an opinion." }, [claim])).toMatch(/internal code name/);
+    expect(validateExplanations({ claims: [{ id: "c1", why: "Marked not_checkable [e1]." }], whyOverall: "Fine." }, [claim])).toMatch(/internal code name/);
   });
   it("falls back to templates when the model is unavailable", async () => {
     delete process.env.GOOGLE_CLOUD_PROJECT;
