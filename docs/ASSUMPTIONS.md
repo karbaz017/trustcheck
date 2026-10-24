@@ -12,3 +12,13 @@
 - **Eval/demo files** are empty on purpose: the team must supply real claims (no fabricated outcomes).
 - **Vertex AI**: all Gemini calls (claim extraction, stance, explanations, grounded search) go to Vertex AI `generateContent` with ADC credentials; there is no API key. Requires `GOOGLE_CLOUD_PROJECT`, `GEMINI_MODEL`, optional `GOOGLE_CLOUD_LOCATION` (default `us-central1`; `global` supported). The credential needs the Vertex AI User role.
 - **Model default**: `GEMINI_MODEL` has no default in code; set it in `.env`.
+
+## Add-ons
+- **Scope**: the add-on spec caps add-ons at two. Built A (calculators) and B (email check). C (ScamSOS) and D (extension) are not built.
+- **Gate**: the spec says to start add-ons only after deploy, eval table and demo cache are green. Those weren't yet when these were built (at the user's request). Both are behind flags that default off; turn them off in the demo if they aren't fully verified.
+- **Calculators**: `principal` is required for `compound_growth` (enter 0 as your assumption if starting from nothing). Contributions are end-of-month. `fee_drag` starts from zero. Bounds: rates -99..1000 %, years <= 100, months <= 1200, money <= 1e12; anything outside is rejected.
+- **Calculator extraction**: only fields the text states are kept; unknown model output is dropped. The "assumption" recompute endpoint (`POST /api/calculate`) is stateless and deterministic.
+- **Email**: `mailparser` decodes MIME parts (including attachment bytes) into memory, but attachment contents are never inspected, saved or returned. Nothing from the email is persisted except the redacted body that goes through the normal claim check (anonymous checks are deleted after 7 days). The raw file, headers and addresses are returned to the uploader only.
+- **Redaction**: emails, SSN-like, IPv4/IPv6, phone numbers (9+ digits or a `+`/parentheses), and any 8+ digit run. 7-8 digit local numbers and dates are left alone to avoid destroying claim text.
+- **Email labels**: "Several warning signs" (any high, or 3+ warn), "Some warning signs" (1-2 warn), otherwise "No strong warning signs found in this file". The words "safe" and "legitimate" never appear in output (tested). The no-signs label is deliberately not green in the UI.
+- **Brand lists**: `brandDomains.json` ships empty (the team fills it), so brand-mismatch and look-alike-of-brand signals are inactive until it's populated. Link-text mismatch, shorteners, IP URLs, punycode and mixed-script checks work without it.

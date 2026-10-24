@@ -23,6 +23,11 @@ npm run dev:client       # :5173 (proxies /api)
 ```
 Optional: `DATABASE_URL` (Postgres), `BRAVE_API_KEY`, Auth0 (`AUTH0_DOMAIN`, `AUTH0_AUDIENCE` on the server; `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE` in `client/.env`).
 
+## Add-ons (feature flags, default off)
+- `FEATURE_CALCULATORS=true`: "What this implies" cards for savings, fee, interest and loan claims (`server/src/pipeline/calculators.ts`). Runs only on numbers the text states; missing numbers are requested as a clearly labelled assumption. Never changes a verdict.
+- `FEATURE_EMAIL_CHECK=true`: upload a `.eml` file at `#/email` for code-computed warning signs plus a claim check of the redacted body (`server/src/addons/emailCheck/`). Files are processed in memory; attachments and links are never opened or visited. Fill `server/src/config/brandDomains.json` to enable brand-impersonation and look-alike checks.
+- Not built: ScamSOS and the browser extension (see `docs/ASSUMPTIONS.md`).
+
 ## Test, eval, demo
 - `npm test` unit tests (tiers, math, verdicts, aggregation, validators, SSRF)
 - `npm run eval` runs `eval/claims.json` (fill with real claims, see `eval/README.md`)
@@ -32,7 +37,7 @@ Optional: `DATABASE_URL` (Postgres), `BRAVE_API_KEY`, Auth0 (`AUTH0_DOMAIN`, `AU
 Tuning lives in `server/src/config/*.json`. Assumptions: `docs/ASSUMPTIONS.md`.
 
 ## Built with
-[Node.js](https://nodejs.org), [Express](https://expressjs.com), [Helmet](https://helmetjs.github.io), [cors](https://github.com/expressjs/cors), [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit), [undici](https://github.com/nodejs/undici), [zod](https://zod.dev), [pg](https://node-postgres.com), [jose](https://github.com/panva/jose), [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs), [dotenv](https://github.com/motdotla/dotenv), [tsx](https://tsx.is), [Vitest](https://vitest.dev), [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Vite](https://vitejs.dev), [Tailwind CSS](https://tailwindcss.com), [Auth0 React SDK](https://github.com/auth0/auth0-react). Services: Gemini on Google Cloud Vertex AI (incl. Google Search grounding), Tavily (optional), Brave Search (optional), Auth0.
+[Node.js](https://nodejs.org), [Express](https://expressjs.com), [Helmet](https://helmetjs.github.io), [cors](https://github.com/expressjs/cors), [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit), [undici](https://github.com/nodejs/undici), [zod](https://zod.dev), [pg](https://node-postgres.com), [jose](https://github.com/panva/jose), [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs), [mailparser](https://nodemailer.com/extras/mailparser/), [multer](https://github.com/expressjs/multer), [dotenv](https://github.com/motdotla/dotenv), [tsx](https://tsx.is), [Vitest](https://vitest.dev), [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Vite](https://vitejs.dev), [Tailwind CSS](https://tailwindcss.com), [Auth0 React SDK](https://github.com/auth0/auth0-react). Services: Gemini on Google Cloud Vertex AI (incl. Google Search grounding), Tavily (optional), Brave Search (optional), Auth0.
 
 ## Limits
 Informational only. Search and sources can be wrong or incomplete.
