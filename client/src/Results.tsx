@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CheckResult, ClaimResult, ClaimVerdict, Evidence, MathCheck, Reason } from "../../server/src/types";
+import ImplicationCard from "./Implication";
 import { BAND, CLAIM_TYPE, OVERALL, TIER, VERDICT } from "./labels";
 
 const fmt = (n: number) => {
@@ -109,6 +110,7 @@ function ClaimCard({ c, index }: { c: ClaimResult; index: number }) {
       </div>
       <h3 className="mt-2 text-lg font-bold leading-snug">{c.text}</h3>
       {c.math && <MathCard m={c.math} />}
+      {c.implication && <ImplicationCard imp={c.implication} />}
       <p className="mt-3 text-[15px] leading-relaxed text-slate-800">{c.why}</p>
       <SourceBalance evidence={c.evidence} />
       {relevant.length > 0 && (
@@ -259,6 +261,7 @@ export default function Results({ r }: { r: CheckResult }) {
                 <Badge cls={VERDICT.not_checkable.badge}>∅ {CLAIM_TYPE[c.type]}</Badge>
                 <p className="mt-2 font-semibold">{c.text}</p>
                 <p className="mt-1 text-slate-700">{c.why}</p>
+                {c.implication && <ImplicationCard imp={c.implication} />}
               </li>
             ))}
           </ul>

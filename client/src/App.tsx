@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CheckResult } from "../../server/src/types";
-import { getCheck, startCheck, streamProgress } from "./api";
+import { getCheck, getFeatures, startCheck, streamProgress, type Features } from "./api";
+import EmailCheck from "./EmailCheck";
 import AuthControls from "./Auth";
 import History from "./History";
 import Progress, { applyEvent, type StageState } from "./Progress";
@@ -29,6 +30,8 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   const [result, setResult] = useState<CheckResult | null>(null);
   const [error, setError] = useState("");
   const abort = useRef<AbortController | null>(null);
+  const [features, setFeatures] = useState<Features>({ calculators: false, emailCheck: false, scamsos: false });
+  useEffect(() => { void getFeatures().then(setFeatures); }, []);
 
   async function waitForResult(id: string) {
     for (let i = 0; i < 60; i++) {
@@ -78,12 +81,18 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
             <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z" className="text-blue-800" /><path d="M8.5 12l2.5 2.5 4.5-5" className="text-emerald-600" /></svg>
             TrustCheck
           </a>
-          <div className="flex items-center gap-3">{authEnabled && <AuthControls />}<ThemeToggle /></div>
+          <nav aria-label="Main" className="flex items-center gap-3 text-sm font-medium">
+            {features.emailCheck && <a href="#/email" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/email" ? "underline" : ""}`}>Email check</a>}
+            {authEnabled && <AuthControls />}
+            <ThemeToggle />
+          </nav>
         </div>
       </header>
 
       <main id="main" className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-6 pb-24">
-        {onHistory ? (
+        {hash === "#/email" && features.emailCheck ? (
+          <EmailCheck />
+        ) : onHistory ? (
           <>
             <h1 className="text-2xl font-bold">Your past checks</h1>
             <History />

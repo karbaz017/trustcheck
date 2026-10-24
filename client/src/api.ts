@@ -1,4 +1,4 @@
-import type { CheckResult, ProgressEvent } from "../../server/src/types";
+import type { CheckResult, Implication, ProgressEvent } from "../../server/src/types";
 
 let tokenGetter: (() => Promise<string | null>) | null = null;
 export const setTokenGetter = (fn: (() => Promise<string | null>) | null) => { tokenGetter = fn; };
@@ -64,4 +64,50 @@ export async function getHistory(): Promise<HistoryItem[]> {
 export async function deleteCheck(id: string): Promise<void> {
   const res = await fetch(`/api/check/${id}`, { method: "DELETE", headers: await authHeaders() });
   if (!res.ok) throw new Error("Couldn't delete that check.");
+}
+
+export interface Features { calculators: boolean; emailCheck: boolean; scamsos: boolean }
+export async function getFeatures(): Promise<Features> {
+  try {
+    const res = await fetch("/api/features");
+    return res.ok ? res.json() : { calculators: false, emailCheck: false, scamsos: false };
+  } catch {
+    return { calculators: false, emailCheck: false, scamsos: false };
+  }
+}
+
+/** Recompute a calculator card after the user supplies assumptions. Computed by code on the server. */
+export async function calculate(calc: string, params: Record<string, number>, assumed: string[]): Promise<Implication> {
+  const res = await fetch("/api/calculate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ calc, params, assumed }) });
+  if (!res.ok) throw new Error("Couldn't work that out. Check the numbers and try again.");
+  return res.json();
+}
+
+export interface EmailSignal { id: string; severity: "info" | "warn" | "high"; title: string; detail: string; evidence: string }
+export interface EmailCheckResponse {
+  label: "Several warning signs" | "Some warning signs" | "No strong warning signs found in this file";
+  signals: EmailSignal[];
+  limitations: string[];
+  checkId: string | null;
+  meta: { from: string; subject: string; linkCount: number; attachments: { filename: string; contentType: string }[] };
+}
+export async function checkEmail(file: File): Promise<EmailCheckResponse> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch("/api/email-check", { method: "POST", headers: await authHeaders(), body: fd });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? "Something went wrong. Please try again.");
+  return body;
+}
+
+/** Follow a running check: stream progress, then fetch the final result. */
+export async function followCheck(id: string, onEvent: (e: ProgressEvent) => void, signal: AbortSignal): Promise<CheckResult> {
+  await streamProgress(id, onEvent, signal).catch(() => {});
+  for (let i = 0; i < 60; i++) {
+    const s = await getCheck(id);
+    if (s.status === "done") return s.result;
+    if (s.status === "failed") throw new Error(s.error);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error("This is taking longer than expected. Please try again.");
 }
