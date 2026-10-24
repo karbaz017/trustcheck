@@ -13,7 +13,7 @@ interface Grounded {
 const REDIRECT_HOST = "vertexaisearch.cloud.google.com";
 
 /** Grounded results link through a Google redirect; resolve it to the publisher URL so tiering sees the real domain. */
-async function resolveRedirect(uri: string, titleFallback: string): Promise<string | null> {
+export async function resolveRedirect(uri: string, titleFallback: string): Promise<string | null> {
   try {
     const u = new URL(uri);
     if (u.hostname !== REDIRECT_HOST) return uri;

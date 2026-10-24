@@ -22,6 +22,7 @@ export interface Thresholds {
   bands: { strong: number; moderate: number; weak: number };
   needsCheckingHypeFlags: number;
   holdsUpMaxHypeFlags: number;
+  outlook: { minTotalWeight: number; leanRatio: number };
 }
 
 export const sourceTiers = load<SourceTiers>("sourceTiers.json");

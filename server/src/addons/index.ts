@@ -12,6 +12,9 @@ import { redact } from "./emailCheck/redact.js";
 import { buildPlan, caseSummary, DISCLAIMER, GENTLE, signsFor, SUPPORTIVE, type Answers } from "./scamsos/playbook.js";
 import { rephrasePlan } from "./scamsos/rephrase.js";
 import { idsOf } from "./scamsos/questions.js";
+import { researchMarket } from "./market/research.js";
+import { emptyBrief, structureBrief } from "./market/structure.js";
+import type { MarketBrief } from "./market/types.js";
 import { computeSignals, EMAIL_LIMITATIONS, summarize } from "./emailCheck/signals.js";
 
 export const addons = Router();
@@ -106,4 +109,27 @@ addons.post("/scamsos", gate("scamsos"), limiter, async (req, res) => {
     supportive: answers.distress ? SUPPORTIVE : null,
     disclaimer: DISCLAIMER,
   });
+});
+
+// ---- E. Market briefing: sourced market context, never a recommendation ----
+const marketCache = new Map<string, { at: number; brief: MarketBrief }>();
+const marketLimiter = rateLimit({ windowMs: 60_000, limit: 5, standardHeaders: true, legacyHeaders: false, message: { error: "Too many briefings. Please wait a minute." } });
+const marketBody = z.object({ query: z.string().trim().min(2).max(300) });
+
+addons.post("/market-brief", gate("market"), marketLimiter, async (req, res) => {
+  const parsed = marketBody.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Enter a ticker, company, or market (up to 300 characters)." });
+  const query = parsed.data.query;
+  const key = query.toLowerCase().replace(/\s+/g, " ");
+  const hit = marketCache.get(key);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return res.json(hit.brief);
+  try {
+    const { annotated, sources } = await researchMarket(query);
+    const brief = await structureBrief(query, annotated, sources);
+    marketCache.set(key, { at: Date.now(), brief });
+    res.json(brief);
+  } catch (e) {
+    console.error(`[market] failed: ${(e as Error).message}`); // never log the query
+    res.status(502).json({ error: "We couldn't build a briefing right now. Please try again in a moment." });
+  }
 });

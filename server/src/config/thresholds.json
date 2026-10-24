@@ -8,5 +8,6 @@
   "claimScores": { "supported": 100, "mixed": 50, "unverifiable": 25, "refuted": 0 },
   "bands": { "strong": 75, "moderate": 50, "weak": 25 },
   "needsCheckingHypeFlags": 3,
-  "holdsUpMaxHypeFlags": 1
+  "holdsUpMaxHypeFlags": 1,
+  "outlook": { "minTotalWeight": 3, "leanRatio": 2 }
 }
