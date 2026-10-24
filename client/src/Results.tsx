@@ -207,7 +207,7 @@ function CopyLink({ id }: { id: string }) {
   );
 }
 
-export default function Results({ r }: { r: CheckResult }) {
+export default function Results({ r, scamsos = false }: { r: CheckResult; scamsos?: boolean }) {
   const o = OVERALL[r.label];
   const checkable = r.claims.filter((c) => c.verdict !== "not_checkable");
   const uncheckable = r.claims.filter((c) => c.verdict === "not_checkable");
@@ -243,6 +243,13 @@ export default function Results({ r }: { r: CheckResult }) {
           )}
         </div>
       </div>
+
+      {scamsos && (
+        <a href="#/scamsos" className="flex items-center justify-between gap-3 rounded-xl border border-teal-300 bg-teal-50 p-4 text-teal-950 hover:bg-teal-100">
+          <span><strong className="block">Already sent money or shared info?</strong><span className="text-sm">Get a calm, step-by-step plan and a summary you can copy for your bank.</span></span>
+          <span aria-hidden className="text-xl">→</span>
+        </a>
+      )}
 
       {checkable.length > 0 && (
         <div className="space-y-3">

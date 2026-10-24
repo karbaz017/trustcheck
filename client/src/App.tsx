@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CheckResult } from "../../server/src/types";
 import { getCheck, getFeatures, startCheck, streamProgress, type Features } from "./api";
 import EmailCheck from "./EmailCheck";
+import ScamSOS from "./ScamSOS";
 import AuthControls from "./Auth";
 import History from "./History";
 import Progress, { applyEvent, type StageState } from "./Progress";
@@ -82,6 +83,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
             TrustCheck
           </a>
           <nav aria-label="Main" className="flex items-center gap-3 text-sm font-medium">
+            {features.scamsos && <a href="#/scamsos" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/scamsos" ? "underline" : ""}`}>ScamSOS</a>}
             {features.emailCheck && <a href="#/email" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/email" ? "underline" : ""}`}>Email check</a>}
             {authEnabled && <AuthControls />}
             <ThemeToggle />
@@ -90,7 +92,9 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
       </header>
 
       <main id="main" className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-6 pb-24">
-        {hash === "#/email" && features.emailCheck ? (
+        {hash === "#/scamsos" && features.scamsos ? (
+          <ScamSOS />
+        ) : hash === "#/email" && features.emailCheck ? (
           <EmailCheck />
         ) : onHistory ? (
           <>
@@ -140,7 +144,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
               <div className="rounded-2xl border border-slate-300 bg-white p-4 sm:p-5"><Progress state={stages} finished={false} /></div>
             )}
             {error && <p role="alert" className="rounded-lg border border-rose-700 bg-rose-50 p-3 text-rose-900">{error}</p>}
-            {result && !busy && <Results r={result} />}
+            {result && !busy && <Results r={result} scamsos={features.scamsos} />}
           </>
         )}
       </main>

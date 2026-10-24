@@ -111,3 +111,15 @@ export async function followCheck(id: string, onEvent: (e: ProgressEvent) => voi
   }
   throw new Error("This is taking longer than expected. Please try again.");
 }
+
+export interface ScamStep { id: string; tier: "now" | "today" | "this_week"; text: string; sourceUrl?: string; ownProvider?: boolean }
+export interface ScamPlanResponse {
+  plan: { now: ScamStep[]; today: ScamStep[]; this_week: ScamStep[] };
+  rephrased: boolean; summary: string; signs: string[]; gentle: string; supportive: string | null; disclaimer: string;
+}
+export async function getScamPlan(a: { happened: string[]; method: string; amount: string; when: string; contact: string; distress: boolean }): Promise<ScamPlanResponse> {
+  const res = await fetch("/api/scamsos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(a) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? "Something went wrong. Please try again.");
+  return body;
+}
