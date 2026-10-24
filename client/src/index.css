@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root { color-scheme: light; }
+body { @apply bg-slate-50 text-slate-900 antialiased; }
+:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+
+/* Dark mode: remap the palette variables Tailwind utilities read, so components need no per-class dark: variants. */
+.dark {
+  color-scheme: dark;
+  --color-white: #0f172a;
+  --color-slate-50: #0a1020;
+  --color-slate-100: #111a2d;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #a9b6c9;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-emerald-50: #052e22; --color-emerald-100: #064e3b; --color-emerald-300: #047857; --color-emerald-700: #34d399; --color-emerald-800: #6ee7b7; --color-emerald-900: #a7f3d0;
+  --color-amber-50: #33210a; --color-amber-100: #4a2f0b; --color-amber-300: #b45309; --color-amber-700: #fbbf24; --color-amber-800: #fcd34d; --color-amber-900: #fde68a;
+  --color-rose-50: #3b0f1c; --color-rose-100: #4c1325; --color-rose-300: #be123c; --color-rose-700: #fb7185; --color-rose-800: #fda4af; --color-rose-900: #fecdd3;
+  --color-blue-50: #0b1b3d; --color-blue-100: #12295c; --color-blue-700: #60a5fa; --color-blue-800: #93c5fd; --color-blue-900: #bfdbfe;
+  --color-indigo-100: #1e1b4b; --color-indigo-600: #818cf8; --color-indigo-900: #c7d2fe;
+  --color-violet-50: #1e1038; --color-violet-100: #2e1065; --color-violet-700: #a78bfa; --color-violet-200: #5b21b6; --color-violet-300: #7c3aed; --color-violet-800: #c4b5fd; --color-violet-900: #ddd6fe; --color-violet-950: #ede9fe;
+  --color-orange-100: #4a2208; --color-orange-700: #fb923c; --color-orange-900: #fed7aa;
+}
+.dark :focus-visible { outline-color: #93c5fd; }
