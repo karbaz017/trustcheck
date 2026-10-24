@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregate, bandOf, buildLimitations, buildReasons } from "../src/pipeline/aggregate.js";
+import { aggregate, bandOf, buildLimitations, buildReasons, evidenceOf } from "../src/pipeline/aggregate.js";
 import type { ClaimResult, ClaimVerdict } from "../src/types.js";
 
 const c = (verdict: ClaimVerdict, importance: 1 | 2 | 3 = 3): ClaimResult => ({
@@ -62,7 +62,7 @@ describe("buildReasons", () => {
     const r = buildReasons([claim], [], "doesnt_hold_up");
     expect(r[0]).toMatchObject({ kind: "contradicted", decisive: true, evidenceId: "e1", quote: "no such returns" });
     expect(r[0].text).toContain("sec.gov (primary source)");
-    expect(r[0].text).toContain("reuters.com (reputable news)");
+    expect(r[0].text).toContain("reuters.com (reputable source)");
   });
   it("explains unverifiable: tier-3-only vs nothing found", () => {
     const none = buildReasons([c("unverifiable")], [], "needs_checking");
@@ -90,4 +90,23 @@ describe("buildReasons", () => {
     const all = buildReasons([{ ...c("refuted"), evidence: [evd("e1", "sec.gov", 1, "contradicts")] }, c("mixed", 2), c("unverifiable", 1)], ["guaranteed", "secret"], "doesnt_hold_up");
     all.forEach((x) => expect(containsAdvice(x.text)).toBe(false));
   });
+});
+
+describe("evidenceOf (gauge)", () => {
+  it("a clearly contradicted claim is strong evidence that contradicts, not 'insufficient'", () => {
+    expect(evidenceOf([c("refuted")])).toEqual({ score: 100, band: "strong", leaning: "contradicts" });
+    expect(aggregate([c("refuted")], 0).strength.band).toBe("insufficient"); // spec support score is unchanged
+  });
+  it("supported is strong and supports; unverifiable is insufficient and unconfirmed; mixed is moderate", () => {
+    expect(evidenceOf([c("supported")])).toEqual({ score: 100, band: "strong", leaning: "supports" });
+    expect(evidenceOf([c("unverifiable")])).toEqual({ score: 0, band: "insufficient", leaning: "unconfirmed" });
+    expect(evidenceOf([c("mixed")])).toEqual({ score: 50, band: "moderate", leaning: "mixed" });
+  });
+  it("importance-weighted: one supported central claim and one refuted minor claim leans supports", () => {
+    const e = evidenceOf([c("supported", 3), c("refuted", 1)]);
+    expect(e.band).toBe("strong");
+    expect(e.leaning).toBe("supports");
+    expect(evidenceOf([c("supported", 2), c("refuted", 2)]).leaning).toBe("mixed");
+  });
+  it("nothing checkable is not scored", () => expect(evidenceOf([c("not_checkable")]).leaning).toBe("not_scored"));
 });

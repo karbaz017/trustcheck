@@ -38,6 +38,25 @@ export function aggregate(
   return { strength, label };
 }
 
+type Leaning = "supports" | "contradicts" | "mixed" | "unconfirmed" | "not_scored";
+
+/**
+ * Evidence strength = how decisive the reliable evidence is, independent of direction:
+ * a clearly supported claim and a clearly contradicted claim are both strong. Leaning says which way it points.
+ */
+export function evidenceOf(claims: ClaimResult[], t: Thresholds = defaults): { score: number; band: Band; leaning: Leaning } {
+  const scored = claims.filter(checkable);
+  if (!scored.length) return { score: 0, band: "insufficient", leaning: "not_scored" };
+  const w = scored.reduce((a, c) => a + c.importance, 0);
+  const avg = (k: "decisiveScores" | "claimScores") => scored.reduce((a, c) => a + c.importance * t[k][c.verdict as keyof Thresholds["claimScores"]], 0) / w;
+  const score = Math.round(avg("decisiveScores"));
+  const sup = scored.filter((c) => c.verdict === "supported").reduce((a, c) => a + c.importance, 0) / w;
+  const con = scored.filter((c) => c.verdict === "refuted").reduce((a, c) => a + c.importance, 0) / w;
+  const unc = scored.filter((c) => c.verdict === "unverifiable").reduce((a, c) => a + c.importance, 0) / w;
+  const leaning: Leaning = sup >= 0.6 ? "supports" : con >= 0.6 ? "contradicts" : unc >= 0.6 ? "unconfirmed" : "mixed";
+  return { score, band: bandOf(score, t), leaning };
+}
+
 export function buildLimitations(claims: ClaimResult[], retrievedAt: string, extra: string[] = []): string[] {
   const urls = new Set(claims.flatMap((c) => c.evidence.filter((e) => e.stance && e.stance !== "irrelevant").map((e) => e.url)));
   const out = [
@@ -49,7 +68,7 @@ export function buildLimitations(claims: ClaimResult[], retrievedAt: string, ext
 }
 
 const quoteShort = (q?: string) => (q && q.length > 200 ? q.slice(0, 197) + "…" : q);
-const tierName = (t: 1 | 2 | 3) => (t === 1 ? "primary source" : t === 2 ? "reputable news" : "low-reliability source");
+const tierName = (t: 1 | 2 | 3) => (t === 1 ? "primary source" : t === 2 ? "reputable source" : "low-reliability source");
 const list = (es: Evidence[]) => es.map((e) => `${e.domain} (${tierName(e.tier)})`).join(", ");
 const byStrength = (a: Evidence, b: Evidence) => a.tier - b.tier;
 const clip = (s: string) => (s.length > 120 ? s.slice(0, 117) + "…" : s);

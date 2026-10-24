@@ -65,7 +65,10 @@ export interface CheckResult {
   createdAt: string;
   claims: ClaimResult[];
   hypeFlags: string[];
+  /** Support score from the spec (supported 100 ... refuted 0). Kept for history and label rules; not shown as the gauge. */
   strength: { score: number; band: "strong" | "moderate" | "weak" | "insufficient" };
+  /** How decisive the reliable evidence is, whichever way it points, plus the direction. Drives the gauge. */
+  evidence?: { score: number; band: "strong" | "moderate" | "weak" | "insufficient"; leaning: "supports" | "contradicts" | "mixed" | "unconfirmed" | "not_scored" };
   label: OverallLabel;
   whyOverall: string;
   /** Deterministic, code-built reasons behind the label. Absent on results saved before this existed. */

@@ -82,6 +82,7 @@ api.get("/history", requireAuth, async (req, res) => {
       preview: (r.inputText || r.inputUrl || "").slice(0, 140),
       label: r.result?.label ?? null,
       strength: r.result?.strength ?? null,
+      evidence: r.result?.evidence ?? null,
       claimCount: r.result?.claims.length ?? 0,
     })),
   );

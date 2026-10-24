@@ -51,3 +51,7 @@
 - **Not used**: Stooq (free quotes) is behind a JavaScript bot challenge, which we do not try to get around.
 - **SEC**: the SEC fair-access policy asks automated clients to send a User-Agent naming the app and a contact address. The tool stays off until `SEC_USER_AGENT` is set; filing URLs are built only from validated EDGAR fields.
 - **Search preference**: the web search prompt now asks for primary sources and established news organizations first. Code tiering is unchanged and still decides what counts.
+
+## Evidence strength gauge (user request)
+- The spec's evidence-strength formula scores refuted claims 0, so a claim clearly contradicted by strong sources showed "Insufficient". The gauge now shows **decisiveness** instead (`decisiveScores` in `thresholds.json`: supported 100, refuted 100, mixed 50, unverifiable 0) plus a direction line (mostly supports / mostly contradicts / mixed / mostly unconfirmed).
+- The spec's support score is still computed and stored as `strength` for history and compatibility. Label rules never used it, so labels are unchanged.

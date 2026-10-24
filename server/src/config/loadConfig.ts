@@ -19,6 +19,8 @@ export interface Thresholds {
   refutedMinC: number;
   refutedMaxS: number;
   claimScores: Record<"supported" | "mixed" | "unverifiable" | "refuted", number>;
+  /** How decisive the evidence is per verdict, regardless of direction (drives the "Evidence strength" gauge). */
+  decisiveScores: Record<"supported" | "mixed" | "unverifiable" | "refuted", number>;
   bands: { strong: number; moderate: number; weak: number };
   needsCheckingHypeFlags: number;
   holdsUpMaxHypeFlags: number;

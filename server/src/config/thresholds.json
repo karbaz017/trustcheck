@@ -1,13 +1,35 @@
 {
-  "tierWeights": { "1": 3, "2": 2, "3": 0.5 },
+  "tierWeights": {
+    "1": 3,
+    "2": 2,
+    "3": 0.5
+  },
   "tier3Cap": 1.0,
   "supportedMinS": 3,
   "supportedMaxC": 1,
   "refutedMinC": 3,
   "refutedMaxS": 1,
-  "claimScores": { "supported": 100, "mixed": 50, "unverifiable": 25, "refuted": 0 },
-  "bands": { "strong": 75, "moderate": 50, "weak": 25 },
+  "claimScores": {
+    "supported": 100,
+    "mixed": 50,
+    "unverifiable": 25,
+    "refuted": 0
+  },
+  "bands": {
+    "strong": 75,
+    "moderate": 50,
+    "weak": 25
+  },
   "needsCheckingHypeFlags": 3,
   "holdsUpMaxHypeFlags": 1,
-  "outlook": { "minTotalWeight": 3, "leanRatio": 2 }
+  "outlook": {
+    "minTotalWeight": 3,
+    "leanRatio": 2
+  },
+  "decisiveScores": {
+    "supported": 100,
+    "refuted": 100,
+    "mixed": 50,
+    "unverifiable": 0
+  }
 }

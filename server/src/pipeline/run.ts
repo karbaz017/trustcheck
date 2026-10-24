@@ -3,7 +3,7 @@ import type { CheckResult, ClaimResult, Evidence, ExtractedClaim, ProgressEvent,
 import { hitsToEvidence, retrieveEvidence } from "../search/retrieve.js";
 import { liveEvidenceFor } from "../tools/planner.js";
 import type { SearchHit } from "../search/types.js";
-import { aggregate, buildLimitations, buildReasons } from "./aggregate.js";
+import { aggregate, buildLimitations, buildReasons, evidenceOf } from "./aggregate.js";
 import { classifyStance } from "./classifyStance.js";
 import { writeExplanations } from "./explain.js";
 import { extractClaims } from "./extractClaims.js";
@@ -116,5 +116,5 @@ export async function runPipeline(
   const limitations = buildLimitations(claims, createdAt, [...new Set(limitationsExtra)]);
   if (claims.length === 0) limitations.push("No money-related claims were found in this text.");
 
-  return { id: opts.id ?? randomUUID(), createdAt, claims, hypeFlags: flags, strength, label, whyOverall: explained.whyOverall, reasons, limitations, timings };
+  return { id: opts.id ?? randomUUID(), createdAt, claims, hypeFlags: flags, strength, evidence: evidenceOf(claims), label, whyOverall: explained.whyOverall, reasons, limitations, timings };
 }

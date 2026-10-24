@@ -18,7 +18,7 @@ export default function History() {
             <p className="text-xs text-slate-600">
               {new Date(i.createdAt).toLocaleString()} · {i.claimCount} claim{i.claimCount === 1 ? "" : "s"}
               {i.label && <> · {OVERALL[i.label].icon} {OVERALL[i.label].text}</>}
-              {i.strength && <> · Evidence {BAND[i.strength.band].toLowerCase()}</>}
+              {(i.evidence ?? i.strength) && <> · Evidence {BAND[(i.evidence ?? i.strength)!.band].toLowerCase()}</>}
             </p>
           </div>
           <button

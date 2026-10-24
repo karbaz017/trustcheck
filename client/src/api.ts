@@ -54,7 +54,7 @@ export async function streamProgress(id: string, onEvent: (e: ProgressEvent) => 
 
 export interface HistoryItem {
   id: string; createdAt: string; status: string; preview: string;
-  label: CheckResult["label"] | null; strength: CheckResult["strength"] | null; claimCount: number;
+  label: CheckResult["label"] | null; strength: CheckResult["strength"] | null; evidence?: CheckResult["evidence"] | null; claimCount: number;
 }
 export async function getHistory(): Promise<HistoryItem[]> {
   const res = await fetch("/api/history", { headers: await authHeaders() });
