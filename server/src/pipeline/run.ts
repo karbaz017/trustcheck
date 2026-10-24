@@ -114,7 +114,7 @@ export async function runPipeline(
 
   const createdAt = new Date().toISOString();
   const limitations = buildLimitations(claims, createdAt, [...new Set(limitationsExtra)]);
-  if (claims.length === 0) limitations.push("No money-related claims were found in this text.");
+  if (claims.length === 0) limitations.push("No specific claims to check were found in this text.");
 
   return { id: opts.id ?? randomUUID(), createdAt, claims, hypeFlags: flags, strength, evidence: evidenceOf(claims), label, whyOverall: explained.whyOverall, reasons, limitations, timings };
 }

@@ -54,7 +54,7 @@ export async function writeExplanations(
     whyOverall: TEMPLATE_OVERALL[label],
     usedTemplate: true,
   });
-  if (claims.length === 0) return { claims, whyOverall: "We didn't find any money-related claims in this text to check.", usedTemplate: true };
+  if (claims.length === 0) return { claims, whyOverall: "We didn't find a specific claim to check in this text. Try pasting the full post or article, or a sentence that states what happened.", usedTemplate: true };
   try {
     const out = await generateJson({
       system: explainSystem,
