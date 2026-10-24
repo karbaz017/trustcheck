@@ -14,6 +14,8 @@ export interface Evidence {
   stance?: Stance;
   stanceReason?: string;
   quote?: string;
+  /** True when the evidence came from a live data tool (quote feed, SEC filing, FRED) rather than web search. */
+  live?: boolean;
 }
 
 export interface MathCheck {

@@ -96,3 +96,27 @@ describe("pipeline with stubbed AI and search", () => {
     expect(r.claims[0].verdict).toBe("unverifiable");
   });
 });
+
+describe("pipeline with live data tools", () => {
+  const baseDeps = (): PipelineDeps => ({
+    extract: async () => [{ text: "Bitcoin is above $100,000", type: "numeric", importance: 3, queries: ["q1", "q2"] }],
+    retrieve: async () => [ev("e1", "blog.example")],
+    stance: async (_c, evidence) => evidence.map((e) => ({ ...e, stance: e.live ? "contradicts" : "irrelevant" })),
+    explain: async (claims, label) => ({ claims: claims.map((c) => ({ ...c, why: "w" })), whyOverall: label, usedTemplate: false }),
+    live: async () => [{ live: true, url: "https://www.coingecko.com/en/coins/bitcoin", title: "Live price", snippet: "price $80,508.00" }],
+  });
+  it("live evidence is appended with the next id, marked live, tiered by domain, and can decide with other reliable sources", async () => {
+    const r = await runPipeline("x", { deps: baseDeps() });
+    const live = r.claims[0].evidence.find((e) => e.live)!;
+    expect(live.id).toBe("e2");
+    expect(live.tier).toBe(2);
+    expect(r.claims[0].verdict).toBe("mixed"); // one tier-2 source (weight 2) is below the refute threshold of 3
+  });
+  it("search failure with live data still yields evidence and no 'search unavailable' note", async () => {
+    const d = baseDeps();
+    d.retrieve = async () => { throw new Error("down"); };
+    const r = await runPipeline("x", { deps: d });
+    expect(r.claims[0].evidence).toHaveLength(1);
+    expect(r.limitations.join(" ")).not.toMatch(/Search was unavailable/);
+  });
+});

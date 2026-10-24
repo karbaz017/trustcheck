@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { CheckResult, ClaimResult, Evidence, ExtractedClaim, ProgressEvent, StageName } from "../types.js";
-import { retrieveEvidence } from "../search/retrieve.js";
+import { hitsToEvidence, retrieveEvidence } from "../search/retrieve.js";
+import { liveEvidenceFor } from "../tools/planner.js";
+import type { SearchHit } from "../search/types.js";
 import { aggregate, buildLimitations, buildReasons } from "./aggregate.js";
 import { classifyStance } from "./classifyStance.js";
 import { writeExplanations } from "./explain.js";
@@ -20,8 +22,10 @@ export interface PipelineDeps {
   retrieve: (queries: string[]) => Promise<Evidence[]>;
   stance: (claim: string, evidence: Evidence[]) => Promise<Evidence[]>;
   explain: typeof writeExplanations;
+  /** Live data tools chosen by the model and run by code (quote feeds, SEC filings, FRED). Optional. */
+  live?: (claim: string) => Promise<(SearchHit & { live?: boolean })[]>;
 }
-const realDeps: PipelineDeps = { extract: extractClaims, retrieve: retrieveEvidence, stance: classifyStance, explain: writeExplanations };
+const realDeps: PipelineDeps = { extract: extractClaims, retrieve: retrieveEvidence, stance: classifyStance, explain: writeExplanations, live: liveEvidenceFor };
 
 export async function runPipeline(
   text: string,
@@ -56,13 +60,15 @@ export async function runPipeline(
 
   const searched = await stage("search", () =>
     Promise.all(
-      extracted.map(async (c, i): Promise<{ evidence: Evidence[]; failed: boolean }> => {
+      extracted.map(async (c): Promise<{ evidence: Evidence[]; failed: boolean }> => {
         if (c.type === "forecast" || c.type === "opinion") return { evidence: [], failed: false };
-        try {
-          return { evidence: await deps.retrieve(c.queries), failed: false };
-        } catch {
-          return { evidence: [], failed: true };
-        }
+        const [web, live] = await Promise.all([
+          deps.retrieve(c.queries).then((e) => ({ e, ok: true })).catch(() => ({ e: [] as Evidence[], ok: false })),
+          deps.live ? deps.live(c.text).catch(() => []) : Promise.resolve([]),
+        ]);
+        // Live tool data goes first so it is never crowded out; ids continue after web results.
+        const liveEv = hitsToEvidence(live, web.e.length).map((e) => ({ ...e, live: true }));
+        return { evidence: [...web.e, ...liveEv], failed: !web.ok && liveEv.length === 0 };
       }),
     ),
   );

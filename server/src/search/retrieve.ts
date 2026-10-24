@@ -34,20 +34,19 @@ export async function searchWithFallback(query: string, providers: SearchProvide
   throw new Error(`All search providers failed (${errors.join("; ")})`);
 }
 
-/** Search both queries, de-duplicate by URL, assign ids e1.. Tiers are applied by the separate tier stage. */
-export async function retrieveEvidence(queries: string[]): Promise<Evidence[]> {
-  const results = await Promise.all(queries.map((q) => searchWithFallback(q)));
+/** Converts hits to evidence: de-duplicates by URL, drops non-http links, assigns ids e{offset+1}... Tiers are applied later by the tier stage. */
+export function hitsToEvidence(hits: SearchHit[], offset = 0): Evidence[] {
   const seen = new Set<string>();
   const now = new Date().toISOString();
   const out: Evidence[] = [];
-  for (const hit of results.flat()) {
+  for (const hit of hits) {
     const domain = domainOf(hit.url);
     if (!domain || !/^https?:\/\//i.test(hit.url)) continue;
     const norm = hit.url.replace(/#.*$/, "").replace(/\/$/, "");
     if (seen.has(norm)) continue;
     seen.add(norm);
     out.push({
-      id: `e${out.length + 1}`,
+      id: `e${offset + out.length + 1}`,
       url: hit.url,
       domain,
       title: hit.title.slice(0, 200),
@@ -57,4 +56,10 @@ export async function retrieveEvidence(queries: string[]): Promise<Evidence[]> {
     });
   }
   return out;
+}
+
+/** Search both queries, de-duplicate by URL, assign ids e1.. Tiers are applied by the separate tier stage. */
+export async function retrieveEvidence(queries: string[]): Promise<Evidence[]> {
+  const results = await Promise.all(queries.map((q) => searchWithFallback(q)));
+  return hitsToEvidence(results.flat());
 }
