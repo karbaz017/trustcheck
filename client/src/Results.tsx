@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CheckResult, ClaimResult, ClaimVerdict, Evidence, MathCheck, Reason } from "../../server/src/types";
 import ImplicationCard from "./Implication";
+import { setMarketPrefill } from "./api";
 import { BAND, CLAIM_TYPE, OVERALL, TIER, VERDICT } from "./labels";
 
 const fmt = (n: number) => {
@@ -207,7 +208,7 @@ function CopyLink({ id }: { id: string }) {
   );
 }
 
-export default function Results({ r, scamsos = false }: { r: CheckResult; scamsos?: boolean }) {
+export default function Results({ r, scamsos = false, market = false }: { r: CheckResult; scamsos?: boolean; market?: boolean }) {
   const o = OVERALL[r.label];
   const checkable = r.claims.filter((c) => c.verdict !== "not_checkable");
   const uncheckable = r.claims.filter((c) => c.verdict === "not_checkable");
@@ -270,6 +271,11 @@ export default function Results({ r, scamsos = false }: { r: CheckResult; scamso
                 <p className="mt-2 font-semibold">{c.text}</p>
                 <p className="mt-1 text-slate-700">{c.why}</p>
                 {c.implication && <ImplicationCard imp={c.implication} />}
+                {market && (
+                  <a href="#/market" onClick={() => setMarketPrefill(c.text)} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-800 underline">
+                    See market context and which way the factors lean <span aria-hidden>→</span>
+                  </a>
+                )}
               </li>
             ))}
           </ul>

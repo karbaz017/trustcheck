@@ -66,13 +66,13 @@ export async function deleteCheck(id: string): Promise<void> {
   if (!res.ok) throw new Error("Couldn't delete that check.");
 }
 
-export interface Features { calculators: boolean; emailCheck: boolean; scamsos: boolean }
+export interface Features { calculators: boolean; emailCheck: boolean; scamsos: boolean; market: boolean }
 export async function getFeatures(): Promise<Features> {
   try {
     const res = await fetch("/api/features");
-    return res.ok ? res.json() : { calculators: false, emailCheck: false, scamsos: false };
+    return res.ok ? res.json() : { calculators: false, emailCheck: false, scamsos: false, market: false };
   } catch {
-    return { calculators: false, emailCheck: false, scamsos: false };
+    return { calculators: false, emailCheck: false, scamsos: false, market: false };
   }
 }
 
@@ -122,4 +122,27 @@ export async function getScamPlan(a: { happened: string[]; method: string; amoun
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error ?? "Something went wrong. Please try again.");
   return body;
+}
+
+export type { MarketBrief } from "../../server/src/addons/market/types";
+import type { MarketBrief as MB } from "../../server/src/addons/market/types";
+export async function getMarketBrief(query: string): Promise<MB> {
+  const res = await fetch("/api/market-brief", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? "Something went wrong. Please try again.");
+  return body;
+}
+
+/** Hand text to the Markets page without putting it in the URL. */
+export function setMarketPrefill(text: string) {
+  try { sessionStorage.setItem("marketPrefill", text); } catch { /* storage unavailable */ }
+}
+export function takeMarketPrefill(): string {
+  try {
+    const t = sessionStorage.getItem("marketPrefill") ?? "";
+    sessionStorage.removeItem("marketPrefill");
+    return t;
+  } catch {
+    return "";
+  }
 }

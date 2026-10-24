@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CheckResult } from "../../server/src/types";
 import { getCheck, getFeatures, startCheck, streamProgress, type Features } from "./api";
 import EmailCheck from "./EmailCheck";
+import Market from "./Market";
 import ScamSOS from "./ScamSOS";
 import AuthControls from "./Auth";
 import History from "./History";
@@ -31,7 +32,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   const [result, setResult] = useState<CheckResult | null>(null);
   const [error, setError] = useState("");
   const abort = useRef<AbortController | null>(null);
-  const [features, setFeatures] = useState<Features>({ calculators: false, emailCheck: false, scamsos: false });
+  const [features, setFeatures] = useState<Features>({ calculators: false, emailCheck: false, scamsos: false, market: false });
   useEffect(() => { void getFeatures().then(setFeatures); }, []);
 
   async function waitForResult(id: string) {
@@ -83,6 +84,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
             TrustCheck
           </a>
           <nav aria-label="Main" className="flex items-center gap-3 text-sm font-medium">
+            {features.market && <a href="#/market" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/market" ? "underline" : ""}`}>Markets</a>}
             {features.scamsos && <a href="#/scamsos" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/scamsos" ? "underline" : ""}`}>ScamSOS</a>}
             {features.emailCheck && <a href="#/email" className={`rounded-md px-2 py-1 hover:bg-slate-100 ${hash === "#/email" ? "underline" : ""}`}>Email check</a>}
             {authEnabled && <AuthControls />}
@@ -92,7 +94,9 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
       </header>
 
       <main id="main" className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-6 pb-24">
-        {hash === "#/scamsos" && features.scamsos ? (
+        {hash === "#/market" && features.market ? (
+          <Market />
+        ) : hash === "#/scamsos" && features.scamsos ? (
           <ScamSOS />
         ) : hash === "#/email" && features.emailCheck ? (
           <EmailCheck />
@@ -144,7 +148,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
               <div className="rounded-2xl border border-slate-300 bg-white p-4 sm:p-5"><Progress state={stages} finished={false} /></div>
             )}
             {error && <p role="alert" className="rounded-lg border border-rose-700 bg-rose-50 p-3 text-rose-900">{error}</p>}
-            {result && !busy && <Results r={result} scamsos={features.scamsos} />}
+            {result && !busy && <Results r={result} scamsos={features.scamsos} market={features.market} />}
           </>
         )}
       </main>
