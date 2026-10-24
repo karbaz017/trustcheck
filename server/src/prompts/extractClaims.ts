@@ -9,7 +9,8 @@ RULES
 - importance: 3 = central to the text, 2 = supporting, 1 = minor.
 - numeric: only for type "numeric". kind "multiple" means the value is a multiplier (doubled = 2, $1,000 to $10,000 = 10). kind "return_pct" means a percentage return (50% gain = 50). periodDays is the time period in days. Omit numeric if the text gives no period or no clear number.
 - queries: exactly 2 neutral search queries per claim. The first should be phrased to find confirming evidence, the second to find contradicting evidence. Never leading or loaded wording. Keep each under 12 words.
-- If the text has no money-related claims, return an empty claims array.`;
+- Questions and hedged phrasing count. If the text asks whether something is true or a good idea ("Is X a good stock to buy?", "NVDA is gonna fall?", "X will boom because of Y?"), extract the assertion it asks about as a statement: "X is a good stock to buy" (type opinion), "NVDA will fall" (type forecast). Keep the user's own subject, numbers and timeframe; add nothing else.
+- Only return an empty claims array if the text has nothing about money, investing, prices, or personal finance.`;
 
 export const extractUser = (text: string) => `<<<USER_TEXT>>>\n${text}\n<<<END_USER_TEXT>>>`;
 
