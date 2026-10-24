@@ -1,0 +1,7 @@
+{
+  "_note": "Urgency wording specific to messages. Combined with hypeTerms.json by the email check.",
+  "terms": [
+    "urgent", "immediately", "act now", "within 24 hours", "within 48 hours", "account suspended", "account will be closed",
+    "verify your account", "confirm your identity", "final notice", "unusual activity", "action required", "password expires", "failure to respond"
+  ]
+}

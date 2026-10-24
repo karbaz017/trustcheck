@@ -5,9 +5,11 @@ import { optionalAuth, requireAuth } from "../auth.js";
 import { store, type CheckRow } from "../db/index.js";
 import { assertAllowedUrl, FetchError } from "../pipeline/fetchUrl.js";
 import { MAX_INPUT_CHARS } from "../pipeline/run.js";
+import { addons } from "../addons/index.js";
 import { startCheck, subscribe } from "../runner.js";
 
 export const api = Router();
+api.use(addons);
 
 const body = z
   .object({ text: z.string().trim().optional(), url: z.string().trim().optional() })

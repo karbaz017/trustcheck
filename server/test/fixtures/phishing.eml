@@ -1,0 +1,23 @@
+From: "ExampleBank Support" <support@examplebamk.test>
+To: customer@example.org
+Reply-To: help@example.org
+Return-Path: <bounce@mailer.example.net>
+Subject: Urgent: verify your account
+Date: Fri, 23 Oct 2026 10:00:00 +0000
+Message-ID: <2@examplebamk.test>
+Authentication-Results: mx.example.org; spf=fail smtp.mailfrom=examplebamk.test; dkim=none; dmarc=fail header.from=examplebamk.test
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="BOUNDARY"
+
+--BOUNDARY
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Unusual activity was detected. Act now and verify your account immediately or it will be closed within 24 hours.</p>
+<p><a href="https://login.examplebamk.test/verify">www.examplebank.test/secure</a></p></body></html>
+--BOUNDARY
+Content-Type: application/octet-stream; name="invoice.pdf.exe"
+Content-Disposition: attachment; filename="invoice.pdf.exe"
+Content-Transfer-Encoding: base64
+
+QUFBQQ==
+--BOUNDARY--

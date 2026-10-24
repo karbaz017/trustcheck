@@ -1,0 +1,4 @@
+{
+  "_note": "Filled by the team. Map a brand name to the domains it really sends from, e.g. { \"ExampleBank\": [\"examplebank.com\"] }. Brand-impersonation and lookalike-domain signals only fire for brands listed here.",
+  "brands": {}
+}
