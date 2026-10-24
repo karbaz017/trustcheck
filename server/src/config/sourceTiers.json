@@ -1,7 +1,14 @@
 {
-  "_note": "Tiering is a lookup, not an AI judgment. Edit freely; tests in server/test/tiers.test.ts.",
-  "tier1Suffixes": [".gov", ".mil"],
-  "tier1SubdomainPrefixes": ["investor.", "investors.", "ir."],
+  "_note": "Tiering is a lookup, not an AI judgment. Edit freely; tests in server/test/tiers.test.ts. Market add-on (2026-10-24): exchanges and the S&P index publisher added as Tier 1 (primary market data); FactSet, Morningstar, Kiplinger, Business Insider, Yahoo Finance added as Tier 2. Remove them to be stricter.",
+  "tier1Suffixes": [
+    ".gov",
+    ".mil"
+  ],
+  "tier1SubdomainPrefixes": [
+    "investor.",
+    "investors.",
+    "ir."
+  ],
   "tier1Domains": [
     "sec.gov",
     "federalreserve.org",
@@ -18,7 +25,12 @@
     "bls.gov",
     "treasury.gov",
     "fca.org.uk",
-    "esma.europa.eu"
+    "esma.europa.eu",
+    "nasdaq.com",
+    "nyse.com",
+    "cmegroup.com",
+    "cboe.com",
+    "spglobal.com"
   ],
   "tier2Domains": [
     "reuters.com",
@@ -41,6 +53,11 @@
     "theguardian.com",
     "politifact.com",
     "factcheck.org",
-    "snopes.com"
+    "snopes.com",
+    "factset.com",
+    "morningstar.com",
+    "kiplinger.com",
+    "businessinsider.com",
+    "finance.yahoo.com"
   ]
 }

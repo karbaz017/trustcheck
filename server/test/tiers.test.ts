@@ -32,3 +32,14 @@ describe("tierOf", () => {
     expect(tierOf("https://fakereuters.com")).toBe(3);
   });
 });
+
+describe("market sources", () => {
+  it("exchanges and the index publisher are primary; established data/research firms are tier 2", () => {
+    expect(tierOf("https://www.nasdaq.com/market-activity/stocks/nvda")).toBe(1);
+    expect(tierOf("https://www.spglobal.com/spdji/en/indices/equity/sp-500/")).toBe(1);
+    expect(tierOf("https://insight.factset.com/x")).toBe(2);
+    expect(tierOf("https://finance.yahoo.com/quote/NVDA")).toBe(2);
+    expect(tierOf("https://www.yahoo.com/news/x")).toBe(3);
+    expect(tierOf("https://seekingalpha.com/x")).toBe(3);
+  });
+});
