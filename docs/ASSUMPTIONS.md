@@ -48,6 +48,7 @@
 - **Why**: web search snippets are second-hand. For prices, company events and macro figures, primary data is better.
 - **How**: Gemini function calling picks tools for each checkable claim (max 3, `toolConfig` AUTO, thinking off). Code validates every call against an allow-list and argument schemas, builds the request URLs itself, and turns results into evidence with code-formatted text. The model never sees API keys and never makes a request.
 - **Verdicts unchanged**: tool evidence is classified by the same stance step and weighed by the same verdict engine. Tiers: FRED (stlouisfed.org) and SEC (sec.gov) Tier 1, Finnhub and CoinGecko Tier 2 as market data feeds.
+- **FRED** uses the public "Download CSV" link (no key), limited to the last two years.
 - **Not used**: Stooq (free quotes) is behind a JavaScript bot challenge, which we do not try to get around.
 - **SEC**: the SEC fair-access policy asks automated clients to send a User-Agent naming the app and a contact address. The tool stays off until `SEC_USER_AGENT` is set; filing URLs are built only from validated EDGAR fields.
 - **Search preference**: the web search prompt now asks for primary sources and established news organizations first. Code tiering is unchanged and still decides what counts.

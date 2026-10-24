@@ -7,7 +7,7 @@ import { MAX_TOOL_CALLS, liveEvidenceFor, validateCalls } from "../src/tools/pla
 import { availableTools } from "../src/tools/registry.js";
 
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } });
-const ENV = ["FINNHUB_API_KEY", "FRED_API_KEY", "SEC_USER_AGENT", "FEATURE_LIVE_DATA", "GOOGLE_CLOUD_PROJECT"];
+const ENV = ["FINNHUB_API_KEY", "SEC_USER_AGENT", "FEATURE_LIVE_DATA", "GOOGLE_CLOUD_PROJECT"];
 let saved: Record<string, string | undefined> = {};
 beforeEach(() => { saved = Object.fromEntries(ENV.map((k) => [k, process.env[k]])); ENV.forEach((k) => delete process.env[k]); });
 afterEach(() => { vi.unstubAllGlobals(); ENV.forEach((k) => (saved[k] === undefined ? delete process.env[k] : (process.env[k] = saved[k]))); });
@@ -80,18 +80,24 @@ describe("SEC filings", () => {
   it("excerpt returns null when the phrase is absent", () => expect(excerpt("nothing here", "Hugging Face")).toBeNull());
 });
 
-describe("FRED economic data", () => {
-  it("reports the latest value and computes CPI year-over-year in code", async () => {
-    process.env.FRED_API_KEY = "k";
-    vi.stubGlobal("fetch", vi.fn(async () => json({ observations: [
-      { date: "2026-09-01", value: "330.0" }, { date: "2026-08-01", value: "329.0" }, { date: "2025-10-01", value: "." }, { date: "2025-09-01", value: "320.0" },
-    ] })));
+describe("FRED economic data (public CSV, no key)", () => {
+  it("is available without a key and reports the latest value; CPI year-over-year is computed in code", async () => {
+    expect(availableTools()).toContain("get_economic_series");
+    const f = vi.fn(async (url: string) => {
+      expect(url).toMatch(/^https:\/\/fred\.stlouisfed\.org\/graph\/fredgraph\.csv\?id=CPIAUCSL&cosd=\d{4}-01-01$/);
+      return new Response("observation_date,CPIAUCSL\n2025-09-01,320.0\n2025-10-01,.\n2026-08-01,329.0\n2026-09-01,330.0\n", { status: 200 });
+    });
+    vi.stubGlobal("fetch", f);
     const [h] = await economicSeriesTool({ series_id: "CPIAUCSL" });
     expect(h.url).toBe("https://fred.stlouisfed.org/series/CPIAUCSL");
     expect(h.snippet).toMatch(/330\.0 for 2026-09-01 \(latest\)\. That is 3\.1% higher than 2025-09-01/);
   });
+  it("percent series get a % sign", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("observation_date,DFEDTARU\n2026-10-23,4.00\n2026-10-24,4.00\n", { status: 200 })));
+    const [h] = await economicSeriesTool({ series_id: "DFEDTARU" });
+    expect(h.snippet).toMatch(/: 4\.00% for 2026-10-24 \(latest\)/);
+  });
   it("only allow-listed series", async () => {
-    process.env.FRED_API_KEY = "k";
     await expect(economicSeriesTool({ series_id: "ANYTHING" })).rejects.toThrow(/unsupported/);
   });
 });
