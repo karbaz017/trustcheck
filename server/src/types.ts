@@ -23,6 +23,18 @@ export interface MathCheck {
   text: string;
 }
 
+/** "What this implies" card from the calculators add-on. Never changes a verdict. */
+export interface Implication {
+  calc: string;
+  status: "ok" | "needs_input" | "invalid";
+  stated: Record<string, number>;
+  missing: string[];
+  assumed?: string[];
+  output?: number;
+  text?: string;
+  error?: string;
+}
+
 export interface ClaimResult {
   id: string;
   text: string;
@@ -31,6 +43,7 @@ export interface ClaimResult {
   verdict: ClaimVerdict;
   evidence: Evidence[];
   math?: MathCheck;
+  implication?: Implication;
   why: string;
 }
 
@@ -66,6 +79,8 @@ export interface ExtractedClaim {
   importance: 1 | 2 | 3;
   numeric?: { kind: "multiple" | "return_pct"; value: number; periodDays: number };
   queries: [string, string];
+  /** Calculator parameters, only values the text explicitly states. Present only when the calculators add-on is on. */
+  calc?: { kind: string; params: Record<string, number | null> };
 }
 
 export type StageName =

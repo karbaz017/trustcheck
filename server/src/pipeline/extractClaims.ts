@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { generateJson } from "../llm/gemini.js";
-import { extractSchema, extractSystem, extractUser } from "../prompts/extractClaims.js";
+import { isOn } from "../addons/flags.js";
+import { CALC_NAMES, CALC_REQUIRED } from "./calculators.js";
+import { calcPromptAddendum, calcSchemaProps, extractSchema, extractSystem, extractUser } from "../prompts/extractClaims.js";
 import type { ExtractedClaim } from "../types.js";
 
 const claimSchema = z.object({
@@ -11,14 +13,29 @@ const claimSchema = z.object({
     .object({ kind: z.enum(["multiple", "return_pct"]), value: z.number(), periodDays: z.number() })
     .nullish(),
   queries: z.array(z.string().min(3).max(300)).length(2),
+  calculation: z
+    .object({ kind: z.enum(CALC_NAMES as [string, ...string[]]) })
+    .catchall(z.number().nullish())
+    .nullish(),
 });
 const outSchema = z.object({ claims: z.array(claimSchema).max(8) });
 
+/** Adds the optional calculator fields to the model schema only when the add-on is on. */
+function schemaFor(withCalc: boolean) {
+  if (!withCalc) return extractSchema;
+  const items = (extractSchema.properties.claims as { items: { properties: Record<string, unknown> } }).items;
+  return {
+    ...extractSchema,
+    properties: { claims: { ...extractSchema.properties.claims, items: { ...items, properties: { ...items.properties, ...calcSchemaProps } } } },
+  };
+}
+
 export async function extractClaims(text: string): Promise<ExtractedClaim[]> {
+  const withCalc = isOn("calculators");
   const out = await generateJson({
-    system: extractSystem,
+    system: withCalc ? extractSystem + calcPromptAddendum : extractSystem,
     user: extractUser(text),
-    responseSchema: extractSchema,
+    responseSchema: schemaFor(withCalc),
     parse: outSchema,
     label: "Claim extraction",
   });
@@ -28,5 +45,17 @@ export async function extractClaims(text: string): Promise<ExtractedClaim[]> {
     importance: c.importance as 1 | 2 | 3,
     numeric: c.numeric ?? undefined,
     queries: [c.queries[0], c.queries[1]] as [string, string],
+    calc: withCalc && c.calculation ? toCalc(c.calculation as Record<string, unknown>) : undefined,
   }));
+}
+
+/** Keep only the parameters that calculator uses; anything else from the model is dropped. */
+function toCalc(raw: Record<string, unknown>): { kind: string; params: Record<string, number | null> } {
+  const kind = String(raw.kind);
+  const params: Record<string, number | null> = {};
+  for (const k of CALC_REQUIRED[kind as keyof typeof CALC_REQUIRED] ?? []) {
+    const v = raw[k];
+    params[k] = typeof v === "number" && Number.isFinite(v) ? v : null;
+  }
+  return { kind, params };
 }

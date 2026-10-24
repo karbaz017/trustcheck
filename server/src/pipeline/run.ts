@@ -6,6 +6,8 @@ import { classifyStance } from "./classifyStance.js";
 import { writeExplanations } from "./explain.js";
 import { extractClaims } from "./extractClaims.js";
 import { hypeFlags } from "./hypeFlags.js";
+import { isOn } from "../addons/flags.js";
+import { CALC_REQUIRED, evaluateCalc, type CalcName } from "./calculators.js";
 import { mathCheck } from "./mathCheck.js";
 import { applyTiers } from "./tierSources.js";
 import { decideVerdict } from "./verdict.js";
@@ -47,6 +49,10 @@ export async function runPipeline(
 
   const extracted = await stage("extract", () => deps.extract(text));
   const maths = await stage("math", () => extracted.map((c) => mathCheck(c)));
+  // Calculators add-on: runs only when the text stated every needed number; otherwise the card asks for the user's assumption.
+  const implications = extracted.map((c) =>
+    isOn("calculators") && c.calc && c.calc.kind in CALC_REQUIRED ? evaluateCalc(c.calc.kind as CalcName, c.calc.params) : undefined,
+  );
 
   const searched = await stage("search", () =>
     Promise.all(
@@ -88,6 +94,7 @@ export async function runPipeline(
       verdict: decideVerdict(c.type, staged[i]).verdict,
       evidence: staged[i],
       math: maths[i],
+      implication: implications[i],
       why: "",
     })),
   );

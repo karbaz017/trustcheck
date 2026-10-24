@@ -41,3 +41,23 @@ export const extractSchema = {
   },
   required: ["claims"],
 };
+
+export const calcPromptAddendum = `
+
+CALCULATOR FIELDS (only for claims about savings growth, fees, interest, or loans)
+- calculation: include it only if the text states a scenario one of these calculators could evaluate: compound_growth, fee_drag, apr_to_apy, apy_to_apr, loan_payment, total_interest, required_annual_return.
+- Fill a field ONLY with a number the text explicitly states (percentages as plain numbers, e.g. 7 for 7%; years as years; months as months). Leave every other field null. NEVER guess, assume, or use typical values for a rate, fee, amount, or period.`;
+
+const nn = { type: "NUMBER", nullable: true };
+export const calcSchemaProps = {
+  calculation: {
+    type: "OBJECT",
+    nullable: true,
+    properties: {
+      kind: { type: "STRING", enum: ["compound_growth", "fee_drag", "apr_to_apy", "apy_to_apr", "loan_payment", "total_interest", "required_annual_return"] },
+      principal: nn, monthlyContribution: nn, annualRatePct: nn, years: nn, feePctA: nn, feePctB: nn,
+      aprPct: nn, apyPct: nn, compoundsPerYear: nn, months: nn, start: nn, target: nn,
+    },
+    required: ["kind"],
+  },
+};
