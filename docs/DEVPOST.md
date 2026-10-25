@@ -1,8 +1,8 @@
-# Verifin: Devpost submission draft
+# TrustCheck: Devpost submission draft
 
 > Items marked **[TEAM: …]** need a human: team names, links, quotes and results we can't make up.
 
-**Name:** Verifin
+**Name:** TrustCheck
 
 **Tagline:** Saw a money claim online? See what the evidence says before you act. Evidence, not advice.
 
@@ -18,7 +18,7 @@ College students get a lot of money advice from TikTok, Reddit, group chats and 
 
 ## What it does
 
-Paste a post, a transcript or an article link. Verifin:
+Paste a post, a transcript or an article link. TrustCheck:
 
 1. **Splits the text into individual claims** and labels each one: a fact, a number, a forecast or an opinion. Forecasts and opinions are marked "Can't be verified" and never get a true/false verdict.
 2. **Checks each factual claim against sources** found with live Google Search and with **live data tools**: crypto prices (CoinGecko), official economic data from the Federal Reserve (FRED), SEC company filings, and stock quotes (Finnhub, when a key is set).
@@ -84,12 +84,12 @@ Pipeline (each stage streams progress to the UI over Server-Sent Events):
 - "Grounded" doesn't mean "correctly attributed". You have to check that a citation really supports the sentence it's attached to.
 - How you word a result matters as much as the result. Labels like "Insufficient" or "no money-related claims" confused real users even when the logic was right.
 
-## What's next for Verifin
+## What's next for TrustCheck
 
 - Run our evaluation set of real public claims and publish the accuracy table. **[TEAM: fill `eval/claims.json` and add results here]**
 - Deploy publicly. **[TEAM: add the URL]**
 - Turn on SEC filings and live stock quotes by default.
-- A browser extension: right-click any selected text and choose "Check with Verifin".
+- A browser extension: right-click any selected text and choose "Check with TrustCheck".
 - Email/SMS alerts for the watchlist, and more languages.
 
 ## Built with
@@ -108,6 +108,6 @@ Pipeline (each stage streams progress to the UI over Server-Sent Events):
 
 ## Honesty notes (for judges)
 
-- Verifin is informational only. Search results and sources can be wrong or incomplete, and a well-supported claim doesn't make something a good decision for you.
+- TrustCheck is informational only. Search results and sources can be wrong or incomplete, and a well-supported claim doesn't make something a good decision for you.
 - Open-source packages and services used are listed in the README's "Built with" section.
 - **[TEAM: mention the similar tools you checked, if any]**
