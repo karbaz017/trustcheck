@@ -100,9 +100,23 @@ export type StageName =
   | "aggregate"
   | "explain";
 
+/** A live data tool call, as shown in the activity panel. */
+export interface ToolCallInfo {
+  name: string;
+  args: Record<string, unknown>;
+  ok: boolean;
+  summary: string;
+  ms: number;
+}
+
 export interface ProgressEvent {
   stage: StageName | "done" | "error";
-  status: "start" | "done" | "error";
+  /** "info" events carry intermediate output (search queries, tool calls) between start and done. */
+  status: "start" | "done" | "error" | "info";
   ms?: number;
+  /** One-line, human-readable description of what happened. */
   message?: string;
+  /** Optional detail lines (claims found, queries, verdicts...). */
+  lines?: string[];
+  tool?: ToolCallInfo;
 }

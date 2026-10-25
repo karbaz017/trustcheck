@@ -134,6 +134,14 @@ describe("POST /api/market-brief", () => {
     expect((await post({ query: "" })).status).toBe(400);
     expect((await post({ query: "x".repeat(301) })).status).toBe(400);
   });
+  it("streaming endpoint sends progress lines then a clean error when research is unavailable", async () => {
+    const res = await fetch(`${base}/market-brief/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "NVDA" }) });
+    expect(res.headers.get("content-type")).toMatch(/ndjson/);
+    const lines = (await res.text()).trim().split("\n").map((l) => JSON.parse(l));
+    expect(lines[0]).toMatchObject({ type: "progress", stage: "research", status: "start" });
+    expect(lines.at(-1)).toMatchObject({ type: "error" });
+    expect(lines.at(-1).message).not.toMatch(/offline/); // internal error text never leaks
+  });
   it("fails cleanly (502, no details) when research is unavailable", async () => {
     const res = await post({ query: "NVDA" });
     expect(res.status).toBe(502);

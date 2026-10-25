@@ -2,6 +2,7 @@ import { isOn } from "../addons/flags.js";
 import { callModel } from "../llm/client.js";
 import { todayLine } from "../prompts/today.js";
 import { availableTools, TOOLS } from "./registry.js";
+import type { ToolCallInfo } from "../types.js";
 import type { ToolHit } from "./types.js";
 
 export const MAX_TOOL_CALLS = 3;
@@ -33,7 +34,7 @@ export function validateCalls(raw: unknown[], allowed: string[]): PlannedCall[] 
 }
 
 /** Let the model choose tools for one claim, then run them in code. Best-effort: any failure yields no extra evidence. */
-export async function liveEvidenceFor(claim: string): Promise<ToolHit[]> {
+export async function liveEvidenceFor(claim: string, onCall?: (c: ToolCallInfo) => void): Promise<ToolHit[]> {
   if (!isOn("liveData")) return [];
   const allowed = availableTools();
   if (!allowed.length) return [];
@@ -51,7 +52,20 @@ export async function liveEvidenceFor(claim: string): Promise<ToolHit[]> {
     if (!res.ok) return [];
     const body = (await res.json()) as { candidates?: { content?: { parts?: { functionCall?: unknown }[] } }[] };
     const calls = validateCalls((body.candidates?.[0]?.content?.parts ?? []).map((p) => p.functionCall).filter(Boolean), allowed);
-    const results = await Promise.all(calls.map((c) => TOOLS[c.name].run(c.args).catch((e: Error) => (console.error(`[tool ${c.name}] ${e.message}`), [] as ToolHit[]))));
+    const results = await Promise.all(
+      calls.map(async (c) => {
+        const t0 = Date.now();
+        try {
+          const hits = await TOOLS[c.name].run(c.args);
+          onCall?.({ name: c.name, args: c.args, ok: true, summary: hits.length ? hits.map((h) => h.snippet).join(" | ").slice(0, 400) : "No data returned", ms: Date.now() - t0 });
+          return hits;
+        } catch (e) {
+          console.error(`[tool ${c.name}] ${(e as Error).message}`);
+          onCall?.({ name: c.name, args: c.args, ok: false, summary: `Failed: ${(e as Error).message}`.slice(0, 200), ms: Date.now() - t0 });
+          return [] as ToolHit[];
+        }
+      }),
+    );
     return results.flat();
   } catch (e) {
     console.error(`[tools] planner failed: ${(e as Error).message}`);

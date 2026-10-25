@@ -77,6 +77,17 @@ describe("pipeline with stubbed AI and search", () => {
     expect(stages).toEqual(["extract", "math", "search", "tier", "stance", "verdict", "hype", "aggregate", "explain"]);
     expect(Object.keys(r.timings)).toContain("search");
   });
+  it("every step reports a readable result, and search reports queries and tool calls as they happen", async () => {
+    const d = deps("supports", "sec.gov");
+    d.live = async (_c, onCall) => { onCall?.({ name: "get_crypto_price", args: { coin: "bitcoin" }, ok: true, summary: "price $80,000", ms: 5 }); return []; };
+    const events: { stage: string; status: string; message?: string; lines?: string[]; tool?: unknown }[] = [];
+    await runPipeline("x", { deps: d, onProgress: (e) => events.push(e) });
+    for (const e of events.filter((x) => x.status === "start" || x.status === "done")) expect(e.message, `${e.stage} ${e.status}`).toBeTruthy();
+    expect(events.find((e) => e.stage === "extract" && e.status === "done")!.lines![0]).toMatch(/^1\. \[Numbers\]/);
+    expect(events.find((e) => e.status === "info" && /searching/.test(e.message!))!.lines).toEqual(["“q1”", "“q2”"]);
+    expect(events.find((e) => e.status === "info" && e.tool)!.message).toMatch(/called get_crypto_price/);
+    expect(events.find((e) => e.stage === "verdict" && e.status === "done")!.lines).toEqual(["Claim 1: Supported", "Claim 2: Can't be verified"]);
+  });
   it("tier 3 only -> unverifiable -> needs_checking", async () => {
     const r = await runPipeline("x", { deps: deps("supports", "randomblog.xyz") });
     expect(r.claims[0].verdict).toBe("unverifiable");
