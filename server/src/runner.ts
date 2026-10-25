@@ -104,7 +104,8 @@ async function execute(id: string, input: { text?: string; url?: string }) {
 function userFacingError(e: unknown): string {
   if (e instanceof FetchError) return e.message;
   const msg = (e as Error)?.message ?? "";
-  if (/Claim extraction failed/.test(msg)) return "The AI model couldn't read this text right now. Please try again in a moment.";
+  // Checked first: an expired login also surfaces as "Claim extraction failed after retries: invalid_grant".
   if (/credentials|invalid_grant|reauth/i.test(msg)) return "The server can't reach the AI model (Google Cloud login expired). Ask the team to sign in again.";
+  if (/Claim extraction failed/.test(msg)) return "The AI model couldn't read this text right now. Please try again in a moment.";
   return "Something went wrong while checking. Please try again.";
 }
