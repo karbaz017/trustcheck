@@ -91,6 +91,8 @@ Real results from live runs during the hackathon. Live search means wording and 
 
 ### 📱 On your phone
 
+![TrustCheck on phones: welcome, instant verdict, full report, sign up and history](docs/screenshots/mobile/phones.png)
+
 The landing page, chat, report panel, menu and mode picker all adapt to phones and tablets: side panels become drawers, cards stack into one column, and nothing scrolls sideways.
 
 | Landing | Ask | Verdict | Full report | Menu | Modes |
