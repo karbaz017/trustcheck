@@ -31,7 +31,7 @@ const STARTS: Record<StageName, string> = {
   explain: "Writing the explanation",
 };
 const TYPE_LABEL: Record<string, string> = { checkable_fact: "Fact", numeric: "Numbers", forecast: "Forecast", opinion: "Opinion" };
-const VERDICT_LABEL: Record<ClaimVerdict, string> = { supported: "Supported", mixed: "Mixed", refuted: "Contradicted", unverifiable: "Can't confirm", not_checkable: "Can't be verified" };
+const VERDICT_LABEL: Record<ClaimVerdict, string> = { supported: "Supported", mixed: "Mixed", refuted: "Contradicted", unverifiable: "Can't confirm", not_checkable: "Can't be verified", expected: "Others predict this too", unbacked: "No reliable backing" };
 const LABEL_TEXT = { holds_up: "Holds up", needs_checking: "Needs checking", doesnt_hold_up: "Doesn't hold up" } as const;
 const short = (t: string, n = 90) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
 type Summary = { message: string; lines?: string[] };
@@ -39,7 +39,7 @@ type Summary = { message: string; lines?: string[] };
 export interface PipelineDeps {
   extract: (text: string) => Promise<ExtractedClaim[]>;
   retrieve: (queries: string[]) => Promise<Evidence[]>;
-  stance: (claim: string, evidence: Evidence[]) => Promise<Evidence[]>;
+  stance: (claim: string, evidence: Evidence[], type?: ExtractedClaim["type"]) => Promise<Evidence[]>;
   explain: typeof writeExplanations;
   /** Live data tools chosen by the model and run by code (quote feeds, SEC filings, FRED). Optional. */
   live?: (claim: string, onCall?: (c: ToolCallInfo) => void) => Promise<(SearchHit & { live?: boolean })[]>;
@@ -86,7 +86,7 @@ export async function runPipeline(
   const searched = await stage("search", () =>
     Promise.all(
       extracted.map(async (c, i): Promise<{ evidence: Evidence[]; failed: boolean; skipped?: boolean; web: number; live: number }> => {
-        if (c.type === "forecast" || c.type === "opinion") return { evidence: [], failed: false, skipped: true, web: 0, live: 0 };
+        if (c.type === "opinion") return { evidence: [], failed: false, skipped: true, web: 0, live: 0 };
         emit({ stage: "search", status: "info", message: `Claim ${i + 1}: searching the web`, lines: c.queries.map((q) => `“${q}”`) });
         const onCall = (call: ToolCallInfo) => emit({ stage: "search", status: "info", message: `Claim ${i + 1}: called ${call.name}`, tool: call });
         const [web, live] = await Promise.all([
@@ -100,7 +100,7 @@ export async function runPipeline(
     ),
   (rs) => ({
     message: `Found ${rs.reduce((a, r) => a + r.evidence.length, 0)} sources`,
-    lines: rs.map((r, i) => `Claim ${i + 1}: ${r.skipped ? "skipped (forecasts and opinions aren't searched)" : r.failed ? "search unavailable" : `${r.web} web result${r.web === 1 ? "" : "s"}${r.live ? ` + ${r.live} live data` : ""}`}`),
+    lines: rs.map((r, i) => `Claim ${i + 1}: ${r.skipped ? "skipped (opinions aren't searched)" : r.failed ? "search unavailable" : `${r.web} web result${r.web === 1 ? "" : "s"}${r.live ? ` + ${r.live} live data` : ""}`}`),
   }));
   const searchFailures = searched.filter((s) => s.failed).length;
   if (searchFailures) limitationsExtra.push(`Search was unavailable for ${searchFailures} claim${searchFailures === 1 ? "" : "s"}, so ${searchFailures === 1 ? "it is" : "they are"} marked unverifiable.`);
@@ -115,7 +115,7 @@ export async function runPipeline(
     Promise.all(
       extracted.map(async (c, i) => {
         try {
-          return await deps.stance(c.text, tiered[i]);
+          return await deps.stance(c.text, tiered[i], c.type);
         } catch {
           // Output failed validation after retries: no evidence is trusted, so the claim ends up unverifiable.
           limitationsExtra.push("For some claims the evidence could not be reliably classified, so they are marked unverifiable.");

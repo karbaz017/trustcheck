@@ -20,7 +20,7 @@ College students get a lot of money advice from TikTok, Reddit, group chats and 
 
 Paste a post, a transcript or an article link. TrustCheck:
 
-1. **Splits the text into individual claims** and labels each one: a fact, a number, a forecast or an opinion. Forecasts and opinions are marked "Can't be verified" and never get a true/false verdict.
+1. **Splits the text into individual claims** and labels each one: a fact, a number, a forecast or an opinion. Forecasts are never called true or false: TrustCheck checks whether any official source or trusted outlet makes the same prediction. An extraordinary prediction nobody reliable makes (like "+100% tomorrow"), or one pushed with "buy now" pressure, is flagged "Doesn't hold up". Opinions are marked "Can't be verified".
 2. **Checks each factual claim against sources** found with live Google Search and with **live data tools**: crypto prices (CoinGecko), official economic data from the Federal Reserve (FRED), SEC company filings, and stock quotes (Finnhub, when a key is set).
 3. **Ranks sources by reliability.** Tier 1 is official sources (regulators, `.gov`, SEC filings, company investor pages). Tier 2 is established outlets (Reuters, AP, Bloomberg, WSJ, CNBC…) and market data feeds. Tier 3 is everything else, and it can never decide a verdict on its own.
 4. **Runs the math itself.** "Doubles every 30 days" becomes a card showing it implies about **4,598× in one year**.

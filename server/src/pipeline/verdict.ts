@@ -31,8 +31,15 @@ export function weigh(evidence: Evidence[], t: Thresholds = defaults): { S: numb
 }
 
 export function decideVerdict(type: ClaimType, evidence: Evidence[], t: Thresholds = defaults): VerdictDetail {
-  if (type === "forecast" || type === "opinion") return { verdict: "not_checkable", S: 0, C: 0 };
+  if (type === "opinion") return { verdict: "not_checkable", S: 0, C: 0 };
   const { S, C } = weigh(evidence, t);
+  if (type === "forecast") {
+    // Never true/false: only whether reliable sources make the same prediction.
+    const reliableBacking = evidence.some((e) => e.tier <= 2 && (e.stance === "supports" || e.stance === "mixed"));
+    if (!reliableBacking) return { verdict: "unbacked", S, C };
+    if (S >= t.supportedMinS && C <= t.supportedMaxC) return { verdict: "expected", S, C };
+    return { verdict: "not_checkable", S, C }; // reliable sources disagree about the outlook
+  }
   const hasReliableRelevant = evidence.some((e) => e.tier <= 2 && e.stance && e.stance !== "irrelevant");
   if (!hasReliableRelevant) return { verdict: "unverifiable", S, C };
   if (S >= t.supportedMinS && C <= t.supportedMaxC) return { verdict: "supported", S, C };

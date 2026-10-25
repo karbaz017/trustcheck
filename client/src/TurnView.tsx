@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { CheckResult, ClaimResult } from "../../server/src/types";
 import { STAGE_LABEL, visibleActivity } from "./Activity";
 import { MODES, type Turn } from "./chat";
-import { LABEL_TONE, SEV } from "./EmailCheck";
+import { bySeverity, LABEL_TONE, SEV } from "./EmailCheck";
 import { IActivity, IAlert, ICheck, IChevronDown, IExternal, IFile, ILink, IRefresh } from "./icons";
 import { OVERALL, TIER, VERDICT } from "./labels";
 import { NewsList } from "./News";
@@ -16,6 +16,8 @@ const TOTAL_STEPS: Record<string, number> = { check: 9, market: 3, email: 10 };
 /** One plain sentence about the evidence, for people who don't read gauges. */
 function evidenceLine(r: CheckResult): string | null {
   const ev = r.evidence;
+  if (ev?.leaning !== "contradicts" && r.claims.some((c) => c.verdict === "unbacked" && c.importance === Math.max(...r.claims.map((x) => x.importance))))
+    return "No trusted source makes this prediction";
   if (!ev || ev.leaning === "not_scored") return null;
   const strength = ev.band === "strong" ? "Strong" : ev.band === "moderate" ? "Some" : "Weak";
   switch (ev.leaning) {
@@ -220,7 +222,7 @@ export default function TurnView({ turn, selected, isLatest, followUps, onSelect
             <div className="space-y-3">
               <p className="text-[17px] font-bold"><span aria-hidden>{LABEL_TONE[r.email.label].icon}</span> {r.email.label}</p>
               <ul className="space-y-1.5 text-sm">
-                {r.email.signals.filter((s) => s.severity !== "info").slice(0, 4).map((s, i) => <li key={i} className="flex items-start gap-2"><Pill cls={SEV[s.severity].cls}>{SEV[s.severity].text}</Pill><span>{s.title}</span></li>)}
+                {bySeverity(r.email.signals).filter((s) => s.severity !== "info").slice(0, 4).map((s, i) => <li key={i} className="flex items-start gap-2"><Pill cls={SEV[s.severity].cls}>{SEV[s.severity].text}</Pill><span>{s.title}</span></li>)}
               </ul>
               {r.check ? <div className="border-t border-slate-200 pt-3"><p className="mb-2 text-xs font-semibold text-slate-600">Claims in the email</p><CheckSummary r={r.check} /></div>
                 : r.email.checkId ? <p className="tc-shimmer text-sm">Now checking the claims in the email…</p> : null}

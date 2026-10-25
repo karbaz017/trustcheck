@@ -25,8 +25,13 @@ export interface Thresholds {
   needsCheckingHypeFlags: number;
   holdsUpMaxHypeFlags: number;
   outlook: { minTotalWeight: number; leanRatio: number };
+  /** A forecast of at least this move within this many days counts as extraordinary. */
+  extraordinary: { maxDays: number; minReturnPct: number };
 }
 
 export const sourceTiers = load<SourceTiers>("sourceTiers.json");
 export const thresholds = load<Thresholds>("thresholds.json");
-export const hypeTerms = load<{ terms: string[] }>("hypeTerms.json").terms;
+const hype = load<{ terms: string[]; patterns?: Record<string, string> }>("hypeTerms.json");
+export const hypeTerms = hype.terms;
+/** Label -> regex for pressure phrasing with words in between ("buy TSLA now"). */
+export const hypePatterns: Record<string, string> = hype.patterns ?? {};

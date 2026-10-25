@@ -12,6 +12,8 @@ export const LABEL_TONE: Record<EmailCheckResponse["label"], { icon: string; cls
   "No strong warning signs found in this file": { icon: "○", cls: "bg-slate-50 border-slate-300" },
 };
 const order = ["high", "warn", "info"];
+/** Most serious first, so a short summary never drops a "High" for a "Warning". */
+export const bySeverity = (signals: EmailSignal[]) => [...signals].sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
 
 /** Full email signals, shown in the artifact panel. */
 export function EmailSignalsView({ res }: { res: EmailCheckResponse }) {
@@ -29,7 +31,7 @@ export function EmailSignalsView({ res }: { res: EmailCheckResponse }) {
           <dd>{res.meta.attachments.length ? res.meta.attachments.map((a) => a.filename).join(", ") + " (never opened)" : "none"}</dd>
         </dl>
         <ul className="mt-3 space-y-2">
-          {[...res.signals].sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity)).map((s, i) => (
+          {bySeverity(res.signals).map((s, i) => (
             <li key={i} className="rounded-lg border border-slate-300 bg-white p-3 text-sm">
               <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${SEV[s.severity].cls}`}><span aria-hidden>{SEV[s.severity].icon}</span> {SEV[s.severity].text}</span>
               <p className="mt-1.5 font-semibold">{s.title}</p>

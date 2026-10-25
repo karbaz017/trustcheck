@@ -68,13 +68,13 @@ describe("pipeline with stubbed AI and search", () => {
     explain: async (claims, label) => ({ claims: claims.map((c) => ({ ...c, why: "w" })), whyOverall: label, usedTemplate: false }),
   });
 
-  it("tier 1 support -> supported, forecast not_checkable, math card, hype flags, label", async () => {
+  it("tier 1 support -> supported, backed forecast is expected, math card, hype flags, label", async () => {
     const stages: string[] = [];
     const r = await runPipeline("GUARANTEED returns!", { deps: deps("supports", "sec.gov"), onProgress: (e) => e.status === "done" && stages.push(e.stage) });
     expect(r.claims[0].verdict).toBe("supported");
     expect(r.claims[0].math?.output).toBeGreaterThan(4500);
-    expect(r.claims[1].verdict).toBe("not_checkable");
-    expect(r.claims[1].evidence).toEqual([]);
+    expect(r.claims[1].verdict).toBe("expected");
+    expect(r.claims[1].evidence.length).toBeGreaterThan(0);
     expect(r.hypeFlags).toEqual(["guaranteed"]);
     expect(r.label).toBe("holds_up");
     expect(stages).toEqual(["extract", "math", "search", "tier", "stance", "verdict", "hype", "aggregate", "explain"]);
@@ -89,7 +89,7 @@ describe("pipeline with stubbed AI and search", () => {
     expect(events.find((e) => e.stage === "extract" && e.status === "done")!.lines![0]).toMatch(/^1\. \[Numbers\]/);
     expect(events.find((e) => e.status === "info" && /searching/.test(e.message!))!.lines).toEqual(["“q1”", "“q2”"]);
     expect(events.find((e) => e.status === "info" && e.tool)!.message).toMatch(/called get_crypto_price/);
-    expect(events.find((e) => e.stage === "verdict" && e.status === "done")!.lines).toEqual(["Claim 1: Supported", "Claim 2: Can't be verified"]);
+    expect(events.find((e) => e.stage === "verdict" && e.status === "done")!.lines).toEqual(["Claim 1: Supported", "Claim 2: Others predict this too"]);
   });
   it("tier 3 only -> unverifiable -> needs_checking", async () => {
     const r = await runPipeline("x", { deps: deps("supports", "randomblog.xyz") });

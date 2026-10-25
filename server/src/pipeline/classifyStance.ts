@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { generateJson } from "../llm/gemini.js";
 import { stanceSchema, stanceSystem, stanceUser } from "../prompts/classifyStance.js";
-import type { Evidence } from "../types.js";
+import type { ClaimType, Evidence } from "../types.js";
 import { isVerbatimQuote } from "./validators.js";
 
 const outSchema = z.object({
@@ -49,11 +49,11 @@ export function applyStances(evidence: Evidence[], out: StanceOutput): Evidence[
   });
 }
 
-export async function classifyStance(claimText: string, evidence: Evidence[]): Promise<Evidence[]> {
+export async function classifyStance(claimText: string, evidence: Evidence[], type?: ClaimType): Promise<Evidence[]> {
   if (evidence.length === 0) return evidence;
   const out = await generateJson({
     system: stanceSystem,
-    user: stanceUser(claimText, evidence),
+    user: stanceUser(claimText, evidence, type === "forecast"),
     responseSchema: stanceSchema,
     parse: outSchema,
     validate: (o) => validateStanceIds(o, evidence),

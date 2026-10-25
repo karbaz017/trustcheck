@@ -28,6 +28,19 @@ describe("aggregate", () => {
     expect(aggregate([c("supported")], 1).label).toBe("holds_up");
     expect(aggregate([c("supported")], 2).label).toBe("needs_checking");
   });
+  it("a central forecast nobody reliable makes doesn't hold up when it is extraordinary or pushed with pressure", () => {
+    const f = (inputs?: Record<string, number>): ClaimResult => ({ ...c("unbacked"), type: "forecast", math: inputs && { calc: "implied_annualized_return_pct", inputs, output: 0, text: "m" } });
+    expect(aggregate([f({ returnPct: 100, periodDays: 1 })], 0).label).toBe("doesnt_hold_up");
+    expect(aggregate([f({ multiple: 2, periodDays: 30 })], 0).label).toBe("doesnt_hold_up");
+    expect(aggregate([f()], 1).label).toBe("doesnt_hold_up"); // pressure words
+    expect(aggregate([f({ returnPct: 5, periodDays: 30 })], 0).label).toBe("needs_checking"); // modest, no pressure
+    expect(aggregate([f({ returnPct: 100, periodDays: 365 })], 0).label).toBe("needs_checking"); // big but over a year
+    expect(aggregate([{ ...f(), verdict: "expected" }], 3).label).toBe("needs_checking");
+    expect(aggregate([c("supported"), { ...f({ returnPct: 100, periodDays: 1 }), importance: 1 }], 0).label).toBe("holds_up"); // minor side claim
+    const why = buildReasons([f({ returnPct: 100, periodDays: 1 })], [], "doesnt_hold_up");
+    expect(why[0]).toMatchObject({ kind: "unbacked", decisive: true });
+    expect(why[0].text).toMatch(/No official source or trusted news outlet makes the prediction .* A 100% move in one day would be extraordinary/);
+  });
   it("lower-importance refuted claim does not trigger rule 1", () => {
     expect(aggregate([c("supported", 3), c("refuted", 1)], 0).label).toBe("holds_up");
   });

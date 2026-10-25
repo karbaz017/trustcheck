@@ -12,8 +12,11 @@ RULES
 - Do NOT give a verdict on the claim. Do not use outside knowledge; judge only from the snippet text.
 - Return one entry for every snippet id given, and no other ids.`;
 
-export const stanceUser = (claim: string, evidence: Evidence[]) =>
-  `${todayLine()}\n<<<CLAIM>>>\n${claim}\n<<<END_CLAIM>>>\n<<<SNIPPETS>>>\n${evidence
+/** Extra rule for predictions: we only ask whether a source makes the same prediction, never whether it is true. */
+const FORECAST_NOTE = `This claim is a PREDICTION. "supports" means the snippet reports an identifiable source (an official body, the company's own guidance, analysts, a market data provider) making the same or a very similar prediction, of similar size and timeframe. "contradicts" means it reports a different expectation (for example a much smaller move, the opposite direction) or says such a move is not expected. A snippet saying prices "could" move, general hype, or the same claim repeated without a named source is "irrelevant".`;
+
+export const stanceUser = (claim: string, evidence: Evidence[], forecast = false) =>
+  `${todayLine()}\n${forecast ? FORECAST_NOTE + "\n" : ""}<<<CLAIM>>>\n${claim}\n<<<END_CLAIM>>>\n<<<SNIPPETS>>>\n${evidence
     .map((e) => `[${e.id}] (${e.domain}) ${e.title}\n${e.snippet}`)
     .join("\n---\n")}\n<<<END_SNIPPETS>>>`;
 

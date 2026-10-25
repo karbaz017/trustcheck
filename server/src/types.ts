@@ -1,5 +1,9 @@
 export type ClaimType = "checkable_fact" | "numeric" | "forecast" | "opinion";
-export type ClaimVerdict = "supported" | "mixed" | "refuted" | "unverifiable" | "not_checkable";
+/**
+ * Facts get supported/mixed/refuted/unverifiable. Forecasts are never true/false: "expected" means reliable sources
+ * make the same prediction, "unbacked" means none do. Opinions (and contested forecasts) are not_checkable.
+ */
+export type ClaimVerdict = "supported" | "mixed" | "refuted" | "unverifiable" | "not_checkable" | "expected" | "unbacked";
 export type OverallLabel = "holds_up" | "needs_checking" | "doesnt_hold_up";
 export type Stance = "supports" | "contradicts" | "mixed" | "irrelevant";
 
@@ -50,7 +54,7 @@ export interface ClaimResult {
 }
 
 export interface Reason {
-  kind: "contradicted" | "mixed" | "unconfirmed" | "math" | "hype" | "supported" | "not_checkable";
+  kind: "contradicted" | "mixed" | "unconfirmed" | "math" | "hype" | "supported" | "not_checkable" | "unbacked" | "expected";
   text: string;
   claimId?: string;
   /** Source cited for this reason, if any. */

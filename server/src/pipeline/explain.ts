@@ -16,6 +16,8 @@ export const TEMPLATE_WHY: Record<ClaimVerdict, string> = {
   refuted: "Reliable sources we found contradict this claim.",
   unverifiable: "We couldn't find a reliable source that confirms or contradicts this claim.",
   not_checkable: "This is a forecast or an opinion, so sources can't confirm or refute it.",
+  expected: "Reliable sources make a similar prediction, but no one can verify the future.",
+  unbacked: "No official source or trusted news outlet makes this prediction.",
 };
 
 export const TEMPLATE_OVERALL: Record<OverallLabel, string> = {

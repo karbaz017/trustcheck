@@ -20,9 +20,21 @@ const fmt = (n: number): string => {
 };
 
 export function mathCheck(claim: Pick<ExtractedClaim, "type" | "numeric">): MathCheck | undefined {
-  if (claim.type !== "numeric" || !claim.numeric) return undefined;
+  if ((claim.type !== "numeric" && claim.type !== "forecast") || !claim.numeric) return undefined;
   const { kind, value, periodDays } = claim.numeric;
   try {
+    if (claim.type === "forecast") {
+      // A predicted one-off move: say what it means, don't compound it into a yearly figure.
+      const pct = kind === "multiple" ? (value - 1) * 100 : value;
+      if (!Number.isFinite(pct) || pct <= -100 || !(periodDays > 0)) return undefined;
+      const after = 1 + pct / 100;
+      return {
+        calc: "implied_annualized_return_pct",
+        inputs: { returnPct: pct, periodDays },
+        output: pct,
+        text: `A ${fmt(Math.abs(pct))}% ${pct >= 0 ? "rise" : "fall"} in ${periodDays === 1 ? "one day" : `${fmt(periodDays)} days`} means the price ends at ${fmt(after)}x where it started${pct >= 100 ? `, so $1,000 would become $${fmt(1000 * after)}` : ""}.`,
+      };
+    }
     if (kind === "multiple") {
       const output = impliedAnnualizedMultiple(value, periodDays);
       return {

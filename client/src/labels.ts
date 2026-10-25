@@ -19,6 +19,8 @@ export const VERDICT: Record<ClaimVerdict, Tone> = {
   refuted: { text: "Contradicted", icon: "✗", ...red },
   unverifiable: { text: "Can't confirm", icon: "?", ...gray },
   not_checkable: { text: "Can't be verified", icon: "∅", ...gray },
+  expected: { text: "Others predict this", icon: "↗", ...gray },
+  unbacked: { text: "No reliable backing", icon: "⚠", ...amber },
 };
 
 export const CLAIM_TYPE: Record<ClaimType, string> = { checkable_fact: "Fact", numeric: "Numbers", forecast: "Forecast", opinion: "Opinion" };

@@ -8,9 +8,13 @@ const ev = (tier: 1 | 2 | 3, stance: Stance, domain = `d${n++}.com`): Evidence =
 });
 
 describe("decideVerdict", () => {
-  it("forecast and opinion are not_checkable regardless of evidence", () => {
-    expect(decideVerdict("forecast", [ev(1, "supports")]).verdict).toBe("not_checkable");
+  it("opinions are never judged; forecasts only say whether reliable sources make the same prediction", () => {
     expect(decideVerdict("opinion", [ev(1, "contradicts")]).verdict).toBe("not_checkable");
+    expect(decideVerdict("forecast", [ev(1, "supports")]).verdict).toBe("expected");
+    expect(decideVerdict("forecast", []).verdict).toBe("unbacked");
+    expect(decideVerdict("forecast", Array.from({ length: 6 }, () => ev(3, "supports"))).verdict).toBe("unbacked"); // hype sites don't count
+    expect(decideVerdict("forecast", [ev(1, "contradicts")]).verdict).toBe("unbacked");
+    expect(decideVerdict("forecast", [ev(2, "supports")]).verdict).toBe("not_checkable"); // some backing, not enough to say "expected"
   });
   it("no evidence is unverifiable", () => {
     expect(decideVerdict("checkable_fact", []).verdict).toBe("unverifiable");

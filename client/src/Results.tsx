@@ -21,15 +21,15 @@ const LEANING: Record<string, string> = {
   unconfirmed: "reliable sources mostly didn't address the claims",
 };
 
-function Gauge({ score, band, color, notScored = false, leaning }: { score: number; band: string; color: string; notScored?: boolean; leaning?: string }) {
+function Gauge({ score, band, color, notScored = false, leaning, why = "nothing checkable" }: { score: number; band: string; color: string; notScored?: boolean; leaning?: string; why?: string }) {
   const L = Math.PI * 80;
   return (
     <div className="mx-auto w-56">
-      <svg viewBox="0 0 180 104" role="meter" aria-label="Evidence strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={notScored ? undefined : score} aria-valuetext={notScored ? "Not scored: nothing here can be checked against sources" : `${BAND[band]}, score ${score} out of 100${leaning ? `; ${LEANING[leaning]}` : ""}`} className="w-full">
+      <svg viewBox="0 0 180 104" role="meter" aria-label="Evidence strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={notScored ? undefined : score} aria-valuetext={notScored ? `Not scored: ${why}` : `${BAND[band]}, score ${score} out of 100${leaning ? `; ${LEANING[leaning]}` : ""}`} className="w-full">
         <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke="var(--color-slate-200)" strokeWidth="14" strokeLinecap="round" />
         <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" strokeDasharray={L} strokeDashoffset={L * (1 - (notScored ? 0 : score) / 100)} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
         <text x="90" y="74" textAnchor="middle" fontSize="24" fontWeight="800" fill="var(--color-slate-900)">{notScored ? "Not scored" : BAND[band]}</text>
-        <text x="90" y="94" textAnchor="middle" fontSize="11" fill="var(--color-slate-600)">{notScored ? "nothing checkable" : `score ${score}/100`}</text>
+        <text x="90" y="94" textAnchor="middle" fontSize="11" fill="var(--color-slate-600)">{notScored ? why : `score ${score}/100`}</text>
       </svg>
       <p className="-mt-1 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Evidence strength</p>
       {!notScored && leaning && LEANING[leaning] && <p className="mt-1 text-center text-xs text-slate-700">{LEANING[leaning][0].toUpperCase() + LEANING[leaning].slice(1)}</p>}
@@ -149,6 +149,8 @@ const REASON_STYLE: Record<Reason["kind"], { icon: string; label: string; cls: s
   hype: { icon: "⚑", label: "Pressure language", cls: "bg-orange-100 text-orange-900 border-orange-700" },
   supported: { icon: "✓", label: "Backed by sources", cls: "bg-emerald-100 text-emerald-900 border-emerald-700" },
   not_checkable: { icon: "∅", label: "Can't be verified", cls: "bg-slate-100 text-slate-800 border-slate-500" },
+  unbacked: { icon: "⚠", label: "No reliable backing", cls: "bg-amber-100 text-amber-900 border-amber-700" },
+  expected: { icon: "↗", label: "Others predict this", cls: "bg-slate-100 text-slate-800 border-slate-500" },
 };
 
 function Reasons({ reasons, title }: { reasons: Reason[]; title: string }) {
@@ -177,7 +179,7 @@ function Reasons({ reasons, title }: { reasons: Reason[]; title: string }) {
 }
 
 function SummaryStrip({ claims }: { claims: ClaimResult[] }) {
-  const order: ClaimVerdict[] = ["supported", "mixed", "refuted", "unverifiable", "not_checkable"];
+  const order: ClaimVerdict[] = ["supported", "mixed", "refuted", "unverifiable", "expected", "unbacked", "not_checkable"];
   const counts = order.map((k) => [k, claims.filter((c) => c.verdict === k).length] as const).filter(([, n]) => n > 0);
   if (!counts.length) return null;
   return (
@@ -216,11 +218,15 @@ function CopyLink({ id }: { id: string }) {
   );
 }
 
+const FACT_VERDICTS: ClaimVerdict[] = ["supported", "mixed", "refuted", "unverifiable"];
+
 export default function Results({ r, onScamSOS, onMarketContext }: { r: CheckResult; onScamSOS?: () => void; onMarketContext?: (claim: string) => void }) {
   const o = OVERALL[r.label];
+  // Predictions that were looked up are listed with the facts (they have sources), but only facts are scored.
   const checkable = r.claims.filter((c) => c.verdict !== "not_checkable");
   const uncheckable = r.claims.filter((c) => c.verdict === "not_checkable");
-  const notScored = checkable.length === 0;
+  const notScored = !r.claims.some((c) => FACT_VERDICTS.includes(c.verdict));
+  const sub = r.label === "doesnt_hold_up" && !r.claims.some((c) => c.verdict === "refuted") ? "A central prediction has no reliable backing" : o.sub;
   return (
     <section aria-labelledby="results-h" className="space-y-6">
       <h2 id="results-h" className="sr-only">Results</h2>
@@ -233,12 +239,12 @@ export default function Results({ r, onScamSOS, onMarketContext }: { r: CheckRes
               <span aria-hidden className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-3xl font-black text-[#fff]" style={{ background: o.accent }}>{o.icon}</span>
               <div>
                 <p className="text-3xl font-extrabold leading-tight @lg:text-4xl">{o.text}</p>
-                <p className="text-sm text-slate-700">{notScored ? "Nothing here can be checked against sources" : o.sub}</p>
+                <p className="text-sm text-slate-700">{notScored && r.label !== "doesnt_hold_up" ? "Nothing here can be checked against sources" : sub}</p>
               </div>
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-900">{r.whyOverall}</p>
           </div>
-          <div className="self-center rounded-xl bg-white/70 p-3"><Gauge score={(r.evidence ?? r.strength).score} band={(r.evidence ?? r.strength).band} color={o.accent} notScored={notScored} leaning={r.evidence?.leaning} /></div>
+          <div className="self-center rounded-xl bg-white/70 p-3"><Gauge score={(r.evidence ?? r.strength).score} band={(r.evidence ?? r.strength).band} color={o.accent} notScored={notScored} leaning={r.evidence?.leaning} why={r.claims.some((c) => c.verdict === "expected" || c.verdict === "unbacked") ? "predictions aren't scored" : undefined} /></div>
         </div>
         <div className="border-t border-black/10 bg-white/60 px-5 py-3 @lg:px-7"><CopyLink id={r.id} /></div>
         {r.reasons && <Reasons reasons={r.reasons} title={r.label === "doesnt_hold_up" ? "Why it doesn't hold up" : r.label === "holds_up" ? "Why it holds up" : "Why it needs checking"} />}
