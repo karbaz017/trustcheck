@@ -4,6 +4,10 @@ Does this money claim hold up? Paste a post, transcript or article link. TrustCh
 
 HackPSU Fall 2026, FNB Challenge. **AI reads and explains; deterministic code decides.**
 
+![TrustCheck demo: a "should I buy Tesla, it will rise 100% tomorrow" message is checked live, comes back "Doesn't hold up", and gets today's market picture with a bottom line](docs/demo.gif)
+
+*Asked "Should I buy Tesla now? A friend says it is going to rise 100% tomorrow", TrustCheck streams each step, finds no reliable source that makes the prediction, flags the "buy now" pressure, and adds today's market picture for TSLA with a code-built bottom line. It never says buy or sell.*
+
 ## Architecture
 
 ```
@@ -11,7 +15,7 @@ input -> fetchUrl* -> extractClaims (Gemini) -> mathCheck (code) -> retrieveEvid
       -> tierSources (code lookup) -> classifyStance (Gemini) -> decideVerdict (code)
       -> hypeFlags (code) -> aggregate (code) -> writeExplanations (Gemini + advice lint) -> result
 ```
-Progress streams to the UI over SSE. Code enforces: Tier 3 can't decide a verdict, forecasts/opinions are `not_checkable`, quotes must be verbatim, cited evidence ids must exist, explanations are linted for advice.
+Progress streams to the UI over SSE. Code enforces: Tier 3 can't decide a verdict, opinions are `not_checkable` and forecasts are never true/false (only `expected` or `unbacked`, by whether reliable sources make the same prediction), quotes must be verbatim, cited evidence ids must exist, explanations are linted for advice.
 
 ## Setup
 ```bash
