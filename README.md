@@ -25,6 +25,27 @@ Paste it in. TrustCheck pulls out every claim, checks it against official source
 
 </div>
 
+## Landing page and welcome screens
+
+<img src="docs/screenshots/landing/landing-hero.png" alt="TrustCheck landing page: 'Saw a money claim online? Check it before you act.' with a live demo card showing a hype post that doesn't hold up">
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/landing/landing-how.png" alt="How it works: paste what you saw, watch it get checked, see why with receipts"><br/><sub><b>How it works.</b> Paste, watch every step, see the receipts</sub></td>
+<td width="50%"><img src="docs/screenshots/landing/landing-features.png" alt="Five modes: check a claim, stock or crypto, scam help, email check, news"><br/><sub><b>One place for every money moment.</b> Five modes, plus live data</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/landing/landing-ai-code.png" alt="AI reads, code decides: the 8-step pipeline labelled AI or code"><br/><sub><b>AI reads. Code decides.</b> Which steps are AI and which are fixed rules</sub></td>
+<td><img src="docs/screenshots/landing/landing-examples.png" alt="Real checks, real verdicts: four example claims with their results"><br/><sub><b>Real checks, real verdicts.</b> Click one to run it</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/landing/landing-cta.png" alt="Call to action: Don't get played by a hype post"><br/><sub><b>Start checking</b> or create a free account</sub></td>
+<td><img src="docs/screenshots/landing/app-welcome.png" alt="App welcome screen with five ways to start and Sign up / Log in"><br/><sub><b>Inside the app.</b> The welcome screen, with Sign up / Log in at the bottom left</sub></td>
+</tr>
+</table>
+
+Open it locally at `http://localhost:5173/#/welcome`. First-time visitors see it automatically.
+
 > [!IMPORTANT]
 > **AI reads. Code decides.** Gemini extracts claims, reads sources and writes the plain-English explanation.
 > Every verdict, score and label is produced by small, tested TypeScript functions, so the model can't "decide" that a scam is fine.
@@ -78,7 +99,7 @@ The landing page, chat, report panel, menu and mode picker all adapt to phones a
 
 ## Contents
 
-- [See it in action](#see-it-in-action) · [Try these](#try-these) · [Gallery](#gallery)
+- [Landing page and welcome screens](#landing-page-and-welcome-screens) · [See it in action](#see-it-in-action) · [Try these](#try-these) · [Gallery](#gallery)
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
 - [The claim-check pipeline](#the-claim-check-pipeline)
