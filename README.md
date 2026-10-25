@@ -25,8 +25,6 @@ Paste it in. TrustCheck pulls out every claim, checks it against official source
 
 </div>
 
-## Landing page and welcome screens
-
 <img src="docs/screenshots/landing/landing-hero.png" alt="TrustCheck landing page: 'Saw a money claim online? Check it before you act.' with a live demo card showing a hype post that doesn't hold up">
 
 <table>
@@ -101,7 +99,7 @@ The landing page, chat, report panel, menu and mode picker all adapt to phones a
 
 ## Contents
 
-- [Landing page and welcome screens](#landing-page-and-welcome-screens) · [See it in action](#see-it-in-action) · [Try these](#try-these) · [Gallery](#gallery)
+- [See it in action](#see-it-in-action) · [Try these](#try-these) · [Gallery](#gallery)
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
 - [The claim-check pipeline](#the-claim-check-pipeline)
