@@ -24,14 +24,16 @@ export function isPrivateAddress(addr: string): boolean {
 }
 
 function isPrivateV4(addr: string): boolean {
-  const [a, b] = addr.split(".").map(Number);
+  const [a, b, c] = addr.split(".").map(Number);
   return (
     a === 0 || a === 10 || a === 127 ||
     (a === 100 && b >= 64 && b <= 127) || // CGNAT
     (a === 169 && b === 254) || // link-local + cloud metadata
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
-    (a === 192 && b === 0) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) || // IETF assignments, TEST-NET-1 (192.0.66.x etc. are public)
+    (a === 198 && b === 51 && c === 100) || // TEST-NET-2
+    (a === 203 && b === 0 && c === 113) || // TEST-NET-3
     (a === 198 && (b === 18 || b === 19)) ||
     a >= 224 // multicast, reserved, broadcast
   );
