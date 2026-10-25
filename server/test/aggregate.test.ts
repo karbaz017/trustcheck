@@ -64,6 +64,12 @@ describe("buildReasons", () => {
     expect(r[0].text).toContain("sec.gov (primary source)");
     expect(r[0].text).toContain("reuters.com (reputable source)");
   });
+  it("names each source site once", () => {
+    const claim = { ...c("refuted"), evidence: [evd("e1", "quora.com", 3, "contradicts"), evd("e2", "quora.com", 3, "contradicts"), evd("e3", "sec.gov", 1, "contradicts")] };
+    const text = buildReasons([claim], [], "doesnt_hold_up")[0].text;
+    expect(text.match(/quora\.com/g)).toHaveLength(1);
+    expect(text.indexOf("sec.gov")).toBeLessThan(text.indexOf("quora.com"));
+  });
   it("explains unverifiable: tier-3-only vs nothing found", () => {
     const none = buildReasons([c("unverifiable")], [], "needs_checking");
     expect(none[0].text).toMatch(/no primary source/i);

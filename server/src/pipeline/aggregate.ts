@@ -69,7 +69,8 @@ export function buildLimitations(claims: ClaimResult[], retrievedAt: string, ext
 
 const quoteShort = (q?: string) => (q && q.length > 200 ? q.slice(0, 197) + "…" : q);
 const tierName = (t: 1 | 2 | 3) => (t === 1 ? "primary source" : t === 2 ? "reputable source" : "low-reliability source");
-const list = (es: Evidence[]) => es.map((e) => `${e.domain} (${tierName(e.tier)})`).join(", ");
+/** Each site once, strongest tier first (input is already sorted by tier). */
+const list = (es: Evidence[]) => [...new Map(es.map((e) => [e.domain, e])).values()].map((e) => `${e.domain} (${tierName(e.tier)})`).join(", ");
 const byStrength = (a: Evidence, b: Evidence) => a.tier - b.tier;
 const clip = (s: string) => (s.length > 120 ? s.slice(0, 117) + "…" : s);
 
