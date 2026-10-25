@@ -41,6 +41,8 @@ export function validateExplanations(out: Out, claims: ClaimResult[]): string | 
   if (/\be\d+\b/.test(out.whyOverall)) return "whyOverall must not cite evidence ids";
   const internal = [out.whyOverall, ...out.claims.map((c) => c.why)].find((t) => /\b[a-z]+_[a-z_]+\b/.test(t));
   if (internal) return "uses an internal code name (like needs_checking); use plain words such as 'needs checking'";
+  if ([out.whyOverall, ...out.claims.map((c) => c.why)].some((t) => /\btiers?\s*[123]\b/i.test(t)))
+    return "uses the jargon 'tier'; say 'official sources', 'trusted news or data' or 'other websites' instead";
   if (containsAdvice(out.whyOverall)) return "whyOverall contains advice phrasing";
   return null;
 }
