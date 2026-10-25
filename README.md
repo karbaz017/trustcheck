@@ -68,6 +68,14 @@ Real results from live runs during the hackathon. Live search means wording and 
 
 ---
 
+### 📱 On your phone
+
+The landing page, chat, report panel, menu and mode picker all adapt to phones and tablets: side panels become drawers, cards stack into one column, and nothing scrolls sideways.
+
+| Landing | Ask | Verdict | Full report | Menu | Modes |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/mobile/iphone-landing-top.png" width="140" alt="Landing page on a phone"> | <img src="docs/screenshots/mobile/p1-welcome.png" width="140" alt="Welcome screen on a phone"> | <img src="docs/screenshots/mobile/p3-result.png" width="140" alt="Doesn't hold up verdict on a phone"> | <img src="docs/screenshots/mobile/p4-report.png" width="140" alt="Full report on a phone"> | <img src="docs/screenshots/mobile/p5-menu.png" width="140" alt="Menu drawer with sign up and log in"> | <img src="docs/screenshots/mobile/p6-modes.png" width="140" alt="Mode picker on a phone"> |
+
 ## Contents
 
 - [See it in action](#see-it-in-action) · [Try these](#try-these) · [Gallery](#gallery)

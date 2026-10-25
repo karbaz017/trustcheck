@@ -415,8 +415,8 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
           </div>
         </header>
 
-        <div ref={scroller} className="tc-scroll min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl space-y-8 px-4 py-6">
+        <div ref={scroller} className="tc-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+          <div className="mx-auto w-full min-w-0 max-w-3xl space-y-8 px-4 py-6">
             {!turns.length ? (
               <Welcome modes={modes} signedIn={auth.isAuthenticated} onPick={(m, example) => {
                 setMode(m);
@@ -499,14 +499,14 @@ function Welcome({ modes, onPick, signedIn }: { modes: Mode[]; onPick: (m: Mode,
       </div>
       <div>
         <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Or try one of these</p>
-        <ul className="grid gap-3 @xl:grid-cols-2 @4xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 @xl:grid-cols-2 @4xl:grid-cols-3 [&>li]:min-w-0">
           {modes.map((m) => {
             const MI = MODES[m].icon;
             return (
-              <li key={m} className="group rounded-2xl border border-slate-200 p-3.5 transition hover:border-slate-300 hover:shadow-sm">
+              <li key={m} className="group min-w-0 rounded-2xl border border-slate-200 p-3.5 transition hover:border-slate-300 hover:shadow-sm">
                 <button type="button" onClick={() => onPick(m)} className="flex w-full items-start gap-3 text-left">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><MI className="h-[18px] w-[18px]" /></span>
-                  <span><span className="block font-semibold">{MODES[m].label}</span><span className="block text-sm leading-snug text-slate-600">{MODES[m].desc}</span></span>
+                  <span className="min-w-0"><span className="block font-semibold">{MODES[m].label}</span><span className="block text-sm leading-snug text-slate-600">{MODES[m].desc}</span></span>
                 </button>
                 {MODES[m].examples.length > 0 && (
                   <ul className="mt-2.5 space-y-1.5">
