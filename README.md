@@ -8,6 +8,8 @@ HackPSU Fall 2026, FNB Challenge. **AI reads and explains; deterministic code de
 
 *Asked "Should I buy Tesla now? A friend says it is going to rise 100% tomorrow", TrustCheck streams each step, finds no reliable source that makes the prediction, flags the "buy now" pressure, and adds today's market picture for TSLA with a code-built bottom line. It never says buy or sell.*
 
+▶️ **[Watch the full 100-second demo (MP4)](docs/demo.mp4)**: hype post, "Should I buy?" with today's market picture, ScamSOS, email check and news alerts.
+
 ## Architecture
 
 ```
