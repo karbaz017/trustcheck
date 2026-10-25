@@ -8,6 +8,7 @@ import {
 import { AuthBridge, type AuthState } from "./Auth";
 import { MODES, loadChats, newChat, saveChats, titleFrom, uid, type ActivityItem, type Chat, type Mode, type Turn, type TurnResult } from "./chat";
 import Composer from "./Composer";
+import Landing from "./Landing";
 import { fetchNews, loadSeen, loadWatchlist, looksLikeClaim, parseTopics, POLL_MS, saveSeen, saveWatchlist, type NewsItem } from "./newsStore";
 import type { ScamPlanResponse } from "./ScamSOS";
 import Sidebar, { Logo } from "./Sidebar";
@@ -27,6 +28,16 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   const [activeId, setActiveId] = useState<string | null>(() => loadChats()[0]?.id ?? null);
   const [mode, setMode] = useState<Mode>("check");
   const [draft, setDraft] = useState("");
+  // Landing page: first visit (no history yet) or #/welcome; dismissed once someone starts.
+  const [landing, setLanding] = useState(() => {
+    if (window.location.hash === "#/welcome") return true;
+    try { return !window.location.hash && !localStorage.getItem("tc.seenLanding") && !localStorage.getItem("tc.chats"); } catch { return false; }
+  });
+  useEffect(() => {
+    const f = () => { if (window.location.hash === "#/welcome") setLanding(true); };
+    window.addEventListener("hashchange", f);
+    return () => window.removeEventListener("hashchange", f);
+  }, []);
   const [sel, setSel] = useState<{ turnId: string | null; tab: Tab }>({ turnId: null, tab: "activity" });
   // Mobile drawers.
   const [leftOpen, setLeftOpen] = useState(false);
@@ -100,7 +111,8 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   function addTurn(m: Mode, prompt: string, status: Turn["status"] = "running", into?: { chatId: string; context?: Turn["context"] }): { chatId: string; turnId: string } {
     const turnId = uid();
     const turn: Turn = { id: turnId, mode: m, prompt, createdAt: Date.now(), status, activity: [], context: into?.context };
-    let chatId = into?.chatId ?? (activeId && chats.some((c) => c.id === activeId) ? activeId : null);
+    // An empty chatId asks for a brand-new chat.
+    let chatId = into?.chatId !== undefined ? into.chatId || null : (activeId && chats.some((c) => c.id === activeId) ? activeId : null);
     if (!chatId) {
       const c = newChat();
       chatId = c.id;
@@ -131,9 +143,9 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   }
 
   // ---- actions ----
-  async function runCheck(prompt: string) {
+  async function runCheck(prompt: string, freshChat = false) {
     const input = URL_RE.test(prompt) ? { url: prompt } : { text: prompt };
-    const { chatId, turnId } = addTurn("check", prompt);
+    const { chatId, turnId } = addTurn("check", prompt, "running", freshChat ? { chatId: "" } : undefined);
     setDraft("");
     try {
       const id = await startCheck(input);
@@ -356,6 +368,25 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
       onCheck={checkText} onScamSOS={features.scamsos ? () => { setMode("scamsos"); startScam(); } : undefined} onMarketContext={features.market ? marketFor : undefined} />
   );
   const iconBtn = "rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900";
+
+  function startFromLanding(m?: Mode, prompt?: string) {
+    try { localStorage.setItem("tc.seenLanding", "1"); } catch { /* storage unavailable */ }
+    setLanding(false);
+    if (window.location.hash === "#/welcome") history.replaceState(null, "", window.location.pathname);
+    setActiveId(null);
+    if (m === "scamsos") { setMode("scamsos"); startScam(); return; }
+    if (m) setMode(m);
+    // Defer one tick so the new chat starts after activeId has been cleared.
+    if (prompt && (!m || m === "check")) { setMode("check"); void runCheck(prompt, true); return; }
+    focusComposer();
+  }
+
+  if (landing) return (
+    <>
+      {authEnabled && <AuthBridge onChange={setAuth} />}
+      <Landing auth={auth} onStart={startFromLanding} />
+    </>
+  );
 
   return (
     <div className="flex h-dvh overflow-hidden bg-white text-slate-900">

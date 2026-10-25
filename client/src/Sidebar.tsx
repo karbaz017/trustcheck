@@ -56,8 +56,10 @@ export default function Sidebar(p: Props) {
   return (
     <nav aria-label="Your checks and settings" className="flex h-full w-[272px] flex-col border-r border-slate-200 bg-slate-50">
       <div className="flex items-center gap-2 px-3 pb-3 pt-3.5">
-        <Logo />
-        <span className="text-[17px] font-bold tracking-tight">TrustCheck</span>
+        <a href="#/welcome" title="About TrustCheck" className="flex items-center gap-2 rounded-lg">
+          <Logo />
+          <span className="text-[17px] font-bold tracking-tight">TrustCheck</span>
+        </a>
         {p.onClose && <button type="button" onClick={p.onClose} aria-label="Close menu" className="ml-auto rounded-lg p-2 text-slate-600 hover:bg-slate-200"><IX className="h-5 w-5" /></button>}
         {p.onCollapse && <button type="button" onClick={p.onCollapse} aria-label="Hide sidebar" title="Hide sidebar" className="ml-auto rounded-lg p-2 text-slate-600 hover:bg-slate-200"><IPanelLeft className="h-5 w-5" /></button>}
       </div>
