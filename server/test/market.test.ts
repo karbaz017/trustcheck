@@ -21,6 +21,7 @@ describe("computeOutlook (code decides)", () => {
     expect(against.downWeight).toBe(0.5);
     expect(against.headline).toMatch(/point upward, the opposite direction to “X will fall”/);
     expect(computeOutlook(d, SOURCES, { text: "X will soar", direction: "up" }).headline).toMatch(/say nothing about how far or how fast/);
+    expect(computeOutlook(d, SOURCES, { text: "X will fall tomorrow.", direction: "down" }).headline).toMatch(/“X will fall tomorrow”\.$/);
   });
   it("names mixed drivers on both sides, since they add weight to both", () => {
     const o = computeOutlook([drv("mixed", ["s2"], "ETF flows"), drv("down", ["s1"], "Rates")], SOURCES, { direction: "up" });

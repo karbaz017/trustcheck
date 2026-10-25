@@ -52,7 +52,8 @@ export function computeOutlook(
   else if (balance === "mixed") verdict = "mixed";
   else verdict = (balance === "leans_up") === (dir === "up") ? "leans_toward" : "leans_against";
 
-  const quote = prediction.text ? `“${prediction.text.slice(0, 140)}”` : "the prediction";
+  // Trailing punctuation is dropped so headlines don't end in “…tomorrow.”.
+  const quote = prediction.text ? `“${prediction.text.slice(0, 140).trim().replace(/[.!?]+$/, "")}”` : "the prediction";
   const way = dir === "up" ? "upward" : "downward";
   const opposite = dir === "up" ? "downward" : "upward";
   const headline = {
