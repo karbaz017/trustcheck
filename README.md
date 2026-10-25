@@ -16,7 +16,7 @@ Paste it in. TrustCheck pulls out every claim, checks it against official source
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 ![Auth0](https://img.shields.io/badge/Auth0-EB5424?logo=auth0&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind_v4-06B6D4?logo=tailwindcss&logoColor=white)
-![Vitest](https://img.shields.io/badge/218_tests-Vitest-6E9F18?logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/224_tests-Vitest-6E9F18?logo=vitest&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 **🏆 HackPSU Fall 2026 · FNB Challenge: Trust, Decisions & Financial Confidence**
@@ -285,7 +285,7 @@ The **market factor balance** weighs sourced up and down price drivers by source
 | **Data** | [CoinGecko](https://www.coingecko.com/en/api), [FRED](https://fred.stlouisfed.org), [SEC EDGAR](https://www.sec.gov/edgar), [Finnhub](https://finnhub.io), [Google News RSS](https://news.google.com) | Live prices, official economic data, filings, headlines |
 | **Storage** | [PostgreSQL](https://www.postgresql.org) via [pg](https://node-postgres.com) | Saved checks, history, 24-hour search cache (in-memory fallback for local dev) |
 | **Auth** | [Auth0](https://auth0.com) | Optional login; history is owner-only |
-| **Testing** | [Vitest](https://vitest.dev) | 218 unit and integration tests |
+| **Testing** | [Vitest](https://vitest.dev) | 224 unit and integration tests |
 | **Tooling** | npm workspaces, dotenv | Monorepo, configuration |
 
 ---
@@ -409,7 +409,7 @@ To switch on the full app, set the feature flags in `.env`: `FEATURE_MARKET`, `F
 ## Testing and evaluation
 
 ```bash
-npm test                                   # 218 Vitest tests
+npm test                                   # 224 Vitest tests
 npm run check:cli -w server -- "claim"     # one-off check from the terminal (prints the full JSON result)
 npm run eval                               # runs eval/claims.json (see eval/README.md)
 npm run demo:warm                          # pre-runs eval/demo.json into the demo cache
