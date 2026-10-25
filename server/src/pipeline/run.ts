@@ -22,9 +22,9 @@ const STARTS: Record<StageName, string> = {
   fetch: "Opening the link",
   extract: "Reading the text and splitting it into claims",
   math: "Checking any numbers in the claims",
-  search: "Searching the web and calling live data tools",
-  tier: "Ranking sources by reliability",
-  stance: "Reading each source against its claim",
+  search: "Looking it up on the web and in live data",
+  tier: "Rating how trustworthy each source is",
+  stance: "Comparing what each source says with each claim",
   verdict: "Deciding a verdict for each claim",
   hype: "Looking for pressure language",
   aggregate: "Working out the overall result",
@@ -108,7 +108,7 @@ export async function runPipeline(
   const tiered = await stage("tier", () => searched.map((s) => applyTiers(s.evidence)), (ts) => {
     const all = ts.flat();
     const n = (t: number) => all.filter((e) => e.tier === t).length;
-    return { message: `Ranked ${all.length} sources`, lines: [`Tier 1 (official): ${n(1)}`, `Tier 2 (reputable): ${n(2)}`, `Tier 3 (other, can't decide alone): ${n(3)}`] };
+    return { message: `Rated how trustworthy each of the ${all.length} sources is`, lines: [`Official sources (government, regulators, company filings): ${n(1)}`, `Trusted news and data outlets: ${n(2)}`, `Other websites (can't decide a verdict on their own): ${n(3)}`] };
   });
 
   const staged = await stage("stance", () =>
@@ -124,7 +124,7 @@ export async function runPipeline(
       }),
     ),
   (st) => ({
-    message: "Read every source against its claim",
+    message: "Compared what each source says with each claim",
     lines: st.map((es, i) => {
       if (!es.length) return `Claim ${i + 1}: no sources`;
       const c = (k: string) => es.filter((e) => e.stance === k).length;
@@ -144,7 +144,7 @@ export async function runPipeline(
       implication: implications[i],
       why: "",
     })),
-  (cs) => ({ message: "Verdicts decided by code", lines: cs.map((c, i) => `Claim ${i + 1}: ${VERDICT_LABEL[c.verdict]}`) }));
+  (cs) => ({ message: "Decided each verdict with our fixed rules (not by the AI)", lines: cs.map((c, i) => `Claim ${i + 1}: ${VERDICT_LABEL[c.verdict]}`) }));
 
   const flags = await stage("hype", () => hypeFlags(text), (f) => ({ message: f.length ? `Pressure language: ${f.join(", ")}` : "No pressure language found" }));
   const { strength, label } = await stage("aggregate", () => aggregate(claims, flags.length), (a) => {

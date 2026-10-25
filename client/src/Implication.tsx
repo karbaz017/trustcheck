@@ -50,7 +50,7 @@ export default function ImplicationCard({ imp: initial }: { imp: Implication }) 
           {Object.keys(imp.stated).length > 0 && (
             <p className="mt-1 text-xs">From the text: {Object.entries(imp.stated).map(([k, v]) => `${label(k)} = ${v}`).join("; ")}</p>
           )}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 @lg:grid-cols-2">
             {imp.missing.map((k) => (
               <label key={k} className="block text-sm font-medium">
                 {label(k)} <span className="text-xs font-normal text-teal-800">(your assumption)</span>
