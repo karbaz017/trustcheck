@@ -199,6 +199,77 @@ flowchart TB
 
 Market briefings stream line by line as newline-delimited JSON (NDJSON) from `/api/market-brief/stream`.
 
+### Swimlane: one check, end to end
+
+Each column is a lane. Purple steps are AI (Gemini), blue steps are fixed code rules. The user sees every step live.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as 👤 User
+  participant B as 🖥️ Browser
+  participant API as ⚙️ API (code)
+  participant G as 🤖 Gemini
+  participant W as 🌐 Search + live data
+  participant DB as 🗄️ Postgres
+
+  U->>B: Paste a post, link or question
+  B->>API: POST /api/check
+  API-->>B: check id
+  B->>API: open live stream (SSE)
+
+  rect rgba(124, 58, 237, 0.12)
+    API->>G: Extract claims
+    G-->>API: claims + search queries
+  end
+  API-->>B: "Found 3 claims"
+
+  rect rgba(3, 105, 161, 0.12)
+    API->>API: Do the math
+  end
+
+  par Web search
+    API->>G: Search with Google grounding
+    G->>W: Google Search
+    W-->>G: results
+    G-->>API: sources
+  and Live data
+    API->>G: Which data tools?
+    G-->>API: e.g. get_crypto_price
+    API->>W: CoinGecko / FRED / SEC (code makes the call)
+    W-->>API: live numbers
+  end
+  API-->>B: "Found 55 sources"
+
+  rect rgba(3, 105, 161, 0.12)
+    API->>API: Rank every source (official / trusted / other)
+  end
+
+  rect rgba(124, 58, 237, 0.12)
+    API->>G: What does each source say?
+    G-->>API: supports / contradicts + exact quotes
+  end
+
+  rect rgba(3, 105, 161, 0.12)
+    API->>API: Check quotes are word for word
+    API->>API: Decide verdicts by fixed rules
+    API->>API: Flag pressure words, overall label
+  end
+
+  rect rgba(124, 58, 237, 0.12)
+    API->>G: Explain in plain English
+    G-->>API: explanation
+  end
+
+  rect rgba(3, 105, 161, 0.12)
+    API->>API: Block advice wording (else use template)
+  end
+
+  API->>DB: Save result
+  API-->>B: Final result
+  B-->>U: Verdict, reasons, quoted sources
+```
+
 ---
 
 ## The claim-check pipeline
