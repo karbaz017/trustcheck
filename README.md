@@ -35,7 +35,13 @@ Paste it in. TrustCheck pulls out every claim, checks it against official source
 
 *"Should I buy Tesla now? A friend says it is going to rise 100% tomorrow": TrustCheck streams each step, finds no reliable source that makes the prediction, flags the "buy now" pressure, and adds today's market picture for TSLA with a bottom line built by code.*
 
-▶️ **[Watch the full 100-second demo (MP4)](docs/demo.mp4)**: hype post · "Should I buy?" · ScamSOS · email check · news alerts.
+### ▶️ Full 100-second demo
+
+Hype post · "Should I buy?" · ScamSOS · email check · news alerts (sound off, captions on screen).
+
+https://github.com/user-attachments/assets/7f44ea8d-5330-4f67-b255-c5ec32577fcd
+
+<sub>Can't play it? [Download the MP4](docs/demo.mp4).</sub>
 
 ## Try these
 
