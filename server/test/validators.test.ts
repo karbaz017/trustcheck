@@ -42,6 +42,9 @@ describe("hype flags", () => {
     expect(hypeFlags("GUARANTEED returns! Don't miss out, it's risk-free")).toEqual(["guaranteed", "risk-free", "don't miss out"]);
     expect(hypeFlags("a 10x return")).toEqual(["10x"]);
     expect(hypeFlags("a 110x return and secretary")).toEqual([]);
+    expect(hypeFlags("one person asking me to buy TESLA now as it is going up")).toEqual(["buy now"]);
+    expect(hypeFlags("get in now")).toEqual(["get in now"]);
+    expect(hypeFlags("I bought it last year. Now it is down")).toEqual([]);
   });
 });
 

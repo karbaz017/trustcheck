@@ -21,6 +21,13 @@ describe("computeOutlook (code decides)", () => {
     expect(against.downWeight).toBe(0.5);
     expect(against.headline).toMatch(/point upward, the opposite direction to “X will fall”/);
     expect(computeOutlook(d, SOURCES, { text: "X will soar", direction: "up" }).headline).toMatch(/say nothing about how far or how fast/);
+    expect(computeOutlook(d, SOURCES, { text: "X will fall tomorrow.", direction: "down" }).headline).toMatch(/“X will fall tomorrow”\.$/);
+  });
+  it("names mixed drivers on both sides, since they add weight to both", () => {
+    const o = computeOutlook([drv("mixed", ["s2"], "ETF flows"), drv("down", ["s1"], "Rates")], SOURCES, { direction: "up" });
+    expect(o.upWeight).toBeGreaterThan(0);
+    expect(o.why[0]).toBe(`Upward pressure (weight ${o.upWeight}): ETF flows (mixed).`);
+    expect(o.why[1]).toMatch(/: ETF flows \(mixed\); Rates\.$/);
   });
   it("tier 3 alone can never make it lean (capped, so stays insufficient)", () => {
     const d = [drv("up", ["s3"]), drv("up", ["s4"]), drv("up", ["s3"])];
@@ -133,6 +140,14 @@ describe("POST /api/market-brief", () => {
   it("validates the query", async () => {
     expect((await post({ query: "" })).status).toBe(400);
     expect((await post({ query: "x".repeat(301) })).status).toBe(400);
+  });
+  it("streaming endpoint sends progress lines then a clean error when research is unavailable", async () => {
+    const res = await fetch(`${base}/market-brief/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "NVDA" }) });
+    expect(res.headers.get("content-type")).toMatch(/ndjson/);
+    const lines = (await res.text()).trim().split("\n").map((l) => JSON.parse(l));
+    expect(lines[0]).toMatchObject({ type: "progress", stage: "research", status: "start" });
+    expect(lines.at(-1)).toMatchObject({ type: "error" });
+    expect(lines.at(-1).message).not.toMatch(/offline/); // internal error text never leaks
   });
   it("fails cleanly (502, no details) when research is unavailable", async () => {
     const res = await post({ query: "NVDA" });

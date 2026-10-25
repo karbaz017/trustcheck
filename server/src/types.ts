@@ -1,5 +1,9 @@
 export type ClaimType = "checkable_fact" | "numeric" | "forecast" | "opinion";
-export type ClaimVerdict = "supported" | "mixed" | "refuted" | "unverifiable" | "not_checkable";
+/**
+ * Facts get supported/mixed/refuted/unverifiable. Forecasts are never true/false: "expected" means reliable sources
+ * make the same prediction, "unbacked" means none do. Opinions (and contested forecasts) are not_checkable.
+ */
+export type ClaimVerdict = "supported" | "mixed" | "refuted" | "unverifiable" | "not_checkable" | "expected" | "unbacked";
 export type OverallLabel = "holds_up" | "needs_checking" | "doesnt_hold_up";
 export type Stance = "supports" | "contradicts" | "mixed" | "irrelevant";
 
@@ -46,11 +50,13 @@ export interface ClaimResult {
   evidence: Evidence[];
   math?: MathCheck;
   implication?: Implication;
+  /** The stock, crypto, fund or index the claim is about, if any (e.g. "TSLA", "Bitcoin"). */
+  asset?: string;
   why: string;
 }
 
 export interface Reason {
-  kind: "contradicted" | "mixed" | "unconfirmed" | "math" | "hype" | "supported" | "not_checkable";
+  kind: "contradicted" | "mixed" | "unconfirmed" | "math" | "hype" | "supported" | "not_checkable" | "unbacked" | "expected";
   text: string;
   claimId?: string;
   /** Source cited for this reason, if any. */
@@ -84,6 +90,7 @@ export interface ExtractedClaim {
   importance: 1 | 2 | 3;
   numeric?: { kind: "multiple" | "return_pct"; value: number; periodDays: number };
   queries: [string, string];
+  asset?: string;
   /** Calculator parameters, only values the text explicitly states. Present only when the calculators add-on is on. */
   calc?: { kind: string; params: Record<string, number | null> };
 }
@@ -100,9 +107,23 @@ export type StageName =
   | "aggregate"
   | "explain";
 
+/** A live data tool call, as shown in the activity panel. */
+export interface ToolCallInfo {
+  name: string;
+  args: Record<string, unknown>;
+  ok: boolean;
+  summary: string;
+  ms: number;
+}
+
 export interface ProgressEvent {
   stage: StageName | "done" | "error";
-  status: "start" | "done" | "error";
+  /** "info" events carry intermediate output (search queries, tool calls) between start and done. */
+  status: "start" | "done" | "error" | "info";
   ms?: number;
+  /** One-line, human-readable description of what happened. */
   message?: string;
+  /** Optional detail lines (claims found, queries, verdicts...). */
+  lines?: string[];
+  tool?: ToolCallInfo;
 }

@@ -14,7 +14,22 @@ const write = (k: string, v: unknown) => {
   try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ }
 };
 
-export const loadWatchlist = () => read<string[]>("tc.watchlist", []);
+/** Same character rule as the server; anything else is turned into a space. */
+export const cleanTopic = (t: string) => t.replace(/[^\p{L}\p{N} .&'-]/gu, " ").replace(/\s+/g, " ").trim();
+const validTopic = (t: string) => t.length >= 2 && t.length <= 60 && t.split(" ").length <= 5;
+
+/** Topics are short names ("NVDA, Federal Reserve"). A question, a sentence or a percentage is a claim to check. */
+export function looksLikeClaim(text: string): boolean {
+  const parts = text.split(/[,;\n]/).map((p) => p.trim()).filter(Boolean);
+  const statement = /\b(will|is|are|was|were|gonna|going to|should|could|would|has|have|did|does|can)\b/i;
+  return /\?/.test(text) || parts.some((p) => p.split(/\s+/).length > 5 || /\d\s*%|\$\s?\d/.test(p) || (p.split(/\s+/).length >= 3 && statement.test(p)));
+}
+
+/** Splits, cleans and de-duplicates topics; drops anything that isn't a short name. */
+export const parseTopics = (text: string) => [...new Set(text.split(/[,;\n]/).map(cleanTopic).filter(validTopic))].slice(0, 10);
+
+// Older versions could store a whole sentence as a topic; those are dropped on load.
+export const loadWatchlist = () => read<string[]>("tc.watchlist", []).map(cleanTopic).filter(validTopic);
 export const saveWatchlist = (w: string[]) => write("tc.watchlist", w);
 export const loadSeen = () => new Set(read<string[]>("tc.newsSeen", []));
 export const saveSeen = (s: Set<string>) => write("tc.newsSeen", [...s].slice(-500));

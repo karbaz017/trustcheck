@@ -3,7 +3,9 @@ import { isIP } from "node:net";
 import { Agent, fetch as ufetch } from "undici";
 import { isPrivateAddress } from "../util/ssrf.js";
 
-export class FetchError extends Error {}
+export class FetchError extends Error {
+  override name = "FetchError";
+}
 
 const BLOCKED_SOCIAL = [
   "twitter.com", "x.com", "facebook.com", "instagram.com", "tiktok.com", "youtube.com", "youtu.be",
@@ -16,7 +18,8 @@ export function isUnsupportedSite(host: string): boolean {
   return BLOCKED_SOCIAL.some((d) => h === d || h.endsWith("." + d));
 }
 
-const MAX_BYTES = 1_000_000;
+// Read at most this much of a page. Bigger pages are truncated, not rejected: many article pages are over 1 MB of markup.
+const MAX_BYTES = 3_000_000;
 const MAX_REDIRECTS = 3;
 const TIMEOUT_MS = 10_000;
 
@@ -64,7 +67,25 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-export async function fetchUrlText(raw: string): Promise<string> {
+export interface Article {
+  text: string;
+  host: string;
+  title: string;
+  bytes: number;
+  truncated: boolean;
+}
+
+const titleOf = (html: string) =>
+  htmlToText(html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "").slice(0, 200);
+
+/** Prefer the longest <article> block when a page has one; navigation and footers are dropped either way. */
+function mainText(html: string): string {
+  const blocks = [...html.matchAll(/<article\b[\s\S]*?<\/article>/gi)].map((m) => htmlToText(m[0]));
+  const best = blocks.sort((a, b) => b.length - a.length)[0];
+  return best && best.length >= 500 ? best : htmlToText(html);
+}
+
+export async function fetchArticle(raw: string): Promise<Article> {
   let url = assertAllowedUrl(raw);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res;
@@ -78,6 +99,7 @@ export async function fetchUrlText(raw: string): Promise<string> {
     } catch (e) {
       const cause = (e as { cause?: unknown }).cause;
       if (e instanceof FetchError || cause instanceof FetchError) throw new FetchError("That address isn't allowed.");
+      if ((e as Error).name === "TimeoutError" || (e as Error).name === "AbortError") throw new FetchError("That site took too long to respond (over 10 seconds). Paste the text instead.");
       throw new FetchError("We couldn't load that link. Paste the text instead.");
     }
     if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
@@ -85,31 +107,42 @@ export async function fetchUrlText(raw: string): Promise<string> {
       url = assertAllowedUrl(new URL(res.headers.get("location")!, url).toString());
       continue;
     }
+    if (res.status === 401 || res.status === 403 || res.status === 429)
+      throw new FetchError(`${url.hostname} blocks automated readers (HTTP ${res.status}). Paste the article text instead.`);
     if (!res.ok) throw new FetchError(`The site returned an error (${res.status}). Paste the text instead.`);
     const type = res.headers.get("content-type") ?? "";
     if (!/text\/(html|plain)|application\/xhtml/i.test(type)) throw new FetchError("That link isn't a readable article. Paste the text instead.");
-    const body = await readCapped(res.body as ReadableStream<Uint8Array> | null);
-    const text = /html/i.test(type) ? htmlToText(body) : body;
-    if (text.length < 40) throw new FetchError("We couldn't find readable text on that page. Paste the text instead.");
-    return text;
+    const { body, bytes, truncated } = await readCapped(res.body as ReadableStream<Uint8Array> | null);
+    const html = /html/i.test(type);
+    const text = html ? mainText(body) : body;
+    if (text.length < 40) throw new FetchError("We couldn't find readable text on that page. It may need JavaScript to load. Paste the text instead.");
+    return { text, host: url.hostname.replace(/^www\./, ""), title: html ? titleOf(body) : "", bytes, truncated };
   }
   throw new FetchError("That link redirects too many times.");
 }
 
-async function readCapped(stream: ReadableStream<Uint8Array> | null): Promise<string> {
-  if (!stream) return "";
+export async function fetchUrlText(raw: string): Promise<string> {
+  return (await fetchArticle(raw)).text;
+}
+
+async function readCapped(stream: ReadableStream<Uint8Array> | null): Promise<{ body: string; bytes: number; truncated: boolean }> {
+  if (!stream) return { body: "", bytes: 0, truncated: false };
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  let truncated = false;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    total += value.byteLength;
-    if (total > MAX_BYTES) {
+    if (total + value.byteLength > MAX_BYTES) {
+      chunks.push(value.subarray(0, MAX_BYTES - total));
+      total = MAX_BYTES;
+      truncated = true;
       await reader.cancel();
-      throw new FetchError("That page is too large to read (over 1 MB). Paste the text instead.");
+      break;
     }
+    total += value.byteLength;
     chunks.push(value);
   }
-  return Buffer.concat(chunks).toString("utf8");
+  return { body: Buffer.concat(chunks).toString("utf8"), bytes: total, truncated };
 }

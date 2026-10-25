@@ -45,6 +45,9 @@ describe("explanation validation", () => {
     expect(validateExplanations({ claims: [{ id: "c1", why: "Backed by [e1]." }], whyOverall: "Looks well supported." }, [claim])).toBeNull();
     expect(validateExplanations({ claims: [{ id: "c1", why: "Backed by [e1]." }], whyOverall: "The result is 'needs_checking' because it is an opinion." }, [claim])).toMatch(/internal code name/);
     expect(validateExplanations({ claims: [{ id: "c1", why: "Marked not_checkable [e1]." }], whyOverall: "Fine." }, [claim])).toMatch(/internal code name/);
+    expect(validateExplanations({ claims: [{ id: "c1", why: "Only tier 3 sources were found [e1]." }], whyOverall: "Fine." }, [claim])).toMatch(/jargon 'tier'/);
+    expect(validateExplanations({ claims: [{ id: "c1", why: "It is below $100,000,,,,,,. [e1]" }], whyOverall: "Fine." }, [claim])).toMatch(/garbled/);
+    expect(validateExplanations({ claims: [{ id: "c1", why: "It trades near $80,000, below $100,000 [e1]..." }], whyOverall: "Fine." }, [claim])).toBeNull();
   });
   it("falls back to templates when the model is unavailable", async () => {
     delete process.env.GOOGLE_CLOUD_PROJECT;
@@ -65,17 +68,28 @@ describe("pipeline with stubbed AI and search", () => {
     explain: async (claims, label) => ({ claims: claims.map((c) => ({ ...c, why: "w" })), whyOverall: label, usedTemplate: false }),
   });
 
-  it("tier 1 support -> supported, forecast not_checkable, math card, hype flags, label", async () => {
+  it("tier 1 support -> supported, backed forecast is expected, math card, hype flags, label", async () => {
     const stages: string[] = [];
     const r = await runPipeline("GUARANTEED returns!", { deps: deps("supports", "sec.gov"), onProgress: (e) => e.status === "done" && stages.push(e.stage) });
     expect(r.claims[0].verdict).toBe("supported");
     expect(r.claims[0].math?.output).toBeGreaterThan(4500);
-    expect(r.claims[1].verdict).toBe("not_checkable");
-    expect(r.claims[1].evidence).toEqual([]);
+    expect(r.claims[1].verdict).toBe("expected");
+    expect(r.claims[1].evidence.length).toBeGreaterThan(0);
     expect(r.hypeFlags).toEqual(["guaranteed"]);
     expect(r.label).toBe("holds_up");
     expect(stages).toEqual(["extract", "math", "search", "tier", "stance", "verdict", "hype", "aggregate", "explain"]);
     expect(Object.keys(r.timings)).toContain("search");
+  });
+  it("every step reports a readable result, and search reports queries and tool calls as they happen", async () => {
+    const d = deps("supports", "sec.gov");
+    d.live = async (_c, onCall) => { onCall?.({ name: "get_crypto_price", args: { coin: "bitcoin" }, ok: true, summary: "price $80,000", ms: 5 }); return []; };
+    const events: { stage: string; status: string; message?: string; lines?: string[]; tool?: unknown }[] = [];
+    await runPipeline("x", { deps: d, onProgress: (e) => events.push(e) });
+    for (const e of events.filter((x) => x.status === "start" || x.status === "done")) expect(e.message, `${e.stage} ${e.status}`).toBeTruthy();
+    expect(events.find((e) => e.stage === "extract" && e.status === "done")!.lines![0]).toMatch(/^1\. \[Numbers\]/);
+    expect(events.find((e) => e.status === "info" && /searching/.test(e.message!))!.lines).toEqual(["“q1”", "“q2”"]);
+    expect(events.find((e) => e.status === "info" && e.tool)!.message).toMatch(/called get_crypto_price/);
+    expect(events.find((e) => e.stage === "verdict" && e.status === "done")!.lines).toEqual(["Claim 1: Supported", "Claim 2: Others predict this too"]);
   });
   it("tier 3 only -> unverifiable -> needs_checking", async () => {
     const r = await runPipeline("x", { deps: deps("supports", "randomblog.xyz") });

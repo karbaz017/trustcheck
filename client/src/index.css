@@ -1,8 +1,32 @@
 @import "tailwindcss";
 
 :root { color-scheme: light; }
-body { @apply bg-slate-50 text-slate-900 antialiased; }
-:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+/* Base rules live in the base layer so component utilities (like "no outline here") can override them. */
+@layer base {
+  body { @apply bg-white text-slate-900 antialiased; font-feature-settings: "cv11", "ss01"; }
+  :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+  .dark :focus-visible { outline-color: #93c5fd; }
+  }
+
+/* Motion: subtle, and off for people who ask for less. */
+@keyframes tc-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.tc-fade { animation: tc-fade 0.28s ease-out both; }
+@keyframes tc-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.tc-shimmer {
+  background: linear-gradient(90deg, var(--color-slate-500) 0%, var(--color-slate-900) 40%, var(--color-slate-500) 60%, var(--color-slate-500) 100%);
+  background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: tc-shimmer 2.2s linear infinite;
+}
+@keyframes tc-dot { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+.tc-dot { animation: tc-dot 1.2s infinite ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  .tc-fade, .tc-shimmer, .tc-dot, .animate-spin, .animate-pulse { animation: none !important; }
+  .tc-shimmer { color: var(--color-slate-700); background: none; }
+}
+.tc-scroll { scrollbar-width: thin; scrollbar-color: var(--color-slate-300) transparent; }
 
 /* Dark mode: remap the palette variables Tailwind utilities read, so components need no per-class dark: variants. */
 .dark {
@@ -26,4 +50,3 @@ body { @apply bg-slate-50 text-slate-900 antialiased; }
   --color-violet-50: #1e1038; --color-violet-100: #2e1065; --color-violet-700: #a78bfa; --color-violet-200: #5b21b6; --color-violet-300: #7c3aed; --color-violet-800: #c4b5fd; --color-violet-900: #ddd6fe; --color-violet-950: #ede9fe;
   --color-teal-50: #042f2e; --color-teal-100: #0b4a47; --color-teal-700: #2dd4bf; --color-teal-900: #99f6e4; --color-teal-300: #0f766e; --color-teal-800: #5eead4; --color-teal-950: #ccfbf1; --color-orange-100: #4a2208; --color-orange-700: #fb923c; --color-orange-900: #fed7aa;
 }
-.dark :focus-visible { outline-color: #93c5fd; }

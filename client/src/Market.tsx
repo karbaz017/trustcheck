@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { getMarketBrief, takeMarketPrefill, type MarketBrief } from "./api";
+import type { MarketBrief } from "./api";
 import { TIER } from "./labels";
 
 type Brief = MarketBrief;
@@ -34,7 +33,7 @@ function Cites({ ids, brief }: { ids: string[]; brief: Brief }) {
 
 function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-300 bg-white p-4 sm:p-5">
+    <section className="rounded-xl border border-slate-300 bg-white p-4 @lg:p-5">
       <h2 className="text-lg font-extrabold">{title}</h2>
       {sub && <p className="text-xs text-slate-600">{sub}</p>}
       <div className="mt-3">{children}</div>
@@ -42,52 +41,12 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
   );
 }
 
-export default function Market() {
-  const [q, setQ] = useState("");
-  const [brief, setBrief] = useState<Brief | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-
-  async function run(query: string) {
-    if (!query.trim()) return;
-    setBusy(true); setErr(""); setBrief(null);
-    try {
-      setBrief(await getMarketBrief(query.trim()));
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  useEffect(() => {
-    const pre = takeMarketPrefill();
-    if (pre) (setQ(pre), void run(pre));
-  }, []);
-
-  const o = brief?.outlook;
+/** Full market briefing, shown in the artifact panel. */
+export function MarketBriefView({ brief }: { brief: Brief }) {
+  const o = brief.outlook;
   const total = o ? o.upWeight + o.downWeight : 0;
+  if (!brief.supported) return <p className="rounded-lg border border-slate-300 bg-slate-50 p-4">{brief.message}</p>;
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-br from-[#312e81] to-[#1e40af] p-6 text-[#fff] sm:p-8">
-        <h1 className="text-3xl font-extrabold tracking-tight">Market briefing</h1>
-        <p className="mt-2 max-w-2xl text-[#e0e7ff]">Type a ticker, company, crypto, or market, or paste a prediction like “NVDA will fall in 30 days”. We pull current figures and what's moving it from live sources, cite every item, and show which way the sourced factors lean.</p>
-        <p className="mt-3 text-sm text-[#c7d2fe]">Information, not advice. We never say buy, sell, or hold.</p>
-      </div>
-
-      <form onSubmit={(e) => { e.preventDefault(); void run(q); }} className="flex flex-col gap-3 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:flex-row">
-        <label htmlFor="mq" className="sr-only">Ticker, company, market, or prediction</label>
-        <input id="mq" value={q} onChange={(e) => setQ(e.target.value)} maxLength={300} placeholder="NVDA · Tesla · Bitcoin · S&P 500 · “NVDA will fall in 30 days”"
-          className="flex-1 rounded-lg border border-slate-400 p-3 text-base" />
-        <button type="submit" disabled={busy || q.trim().length < 2} className="rounded-lg bg-[#1e40af] px-5 py-3 font-semibold text-[#fff] disabled:cursor-not-allowed disabled:bg-slate-400">
-          {busy ? "Researching…" : "Get briefing"}
-        </button>
-      </form>
-      {busy && <p aria-live="polite" className="rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900"><span className="mr-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-700 border-t-transparent align-middle" />Searching live sources and checking every figure against them. This takes about 30 seconds.</p>}
-      {err && <p role="alert" className="rounded-lg border border-rose-700 bg-rose-50 p-3 text-rose-900">{err}</p>}
-
-      {brief && !brief.supported && <p className="rounded-lg border border-slate-300 bg-slate-50 p-4">{brief.message}</p>}
-
-      {brief?.supported && (
         <div className="space-y-5">
           <p role="note" className="rounded-xl border-2 border-amber-500 bg-amber-50 p-4 text-sm font-medium text-amber-950">⚠ {brief.disclaimer}</p>
 
@@ -118,7 +77,7 @@ export default function Market() {
 
           {brief.snapshot.length > 0 && (
             <Section title="Snapshot" sub="As reported by the cited sources. Quotes may be delayed.">
-              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <dl className="grid gap-3 @lg:grid-cols-2 @3xl:grid-cols-3">
                 {brief.snapshot.map((s) => (
                   <div key={s.label} className="rounded-lg border border-slate-200 p-3">
                     <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">{s.label}</dt>
@@ -146,7 +105,7 @@ export default function Market() {
           )}
 
           {(brief.bullCase.length > 0 || brief.bearCase.length > 0) && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 @2xl:grid-cols-2">
               <Section title="What supporters point to">
                 <ul className="list-disc space-y-1.5 pl-5 text-sm">{brief.bullCase.map((b) => <li key={b.point}>{b.point}<Cites ids={b.sourceIds} brief={brief} /></li>)}</ul>
                 {!brief.bullCase.length && <p className="text-sm text-slate-600">Nothing sourced.</p>}
@@ -177,7 +136,7 @@ export default function Market() {
             </Section>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 @2xl:grid-cols-2">
             {brief.upcoming.length > 0 && (
               <Section title="Coming up">
                 <ul className="space-y-1.5 text-sm">{brief.upcoming.map((u) => <li key={u.event}><span className="font-semibold">{u.date ?? "Date TBA"}</span> · {u.event}<Cites ids={u.sourceIds} brief={brief} /></li>)}</ul>
@@ -204,7 +163,7 @@ export default function Market() {
             </ol>
           </Section>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 @2xl:grid-cols-2">
             <Section title="Limits of this briefing">
               <ul className="list-disc space-y-1.5 pl-5 text-sm">{brief.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
             </Section>
@@ -218,7 +177,5 @@ export default function Market() {
             </Section>
           </div>
         </div>
-      )}
-    </div>
   );
 }

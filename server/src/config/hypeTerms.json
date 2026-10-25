@@ -16,6 +16,12 @@
     "don't miss out",
     "easy money",
     "passive income",
-    "financial freedom"
-  ]
+    "financial freedom",
+    "buy now",
+    "act now",
+    "to the moon"
+  ],
+  "patterns": {
+    "buy now": "\\b(buy|invest in|invest)\\b[^.!?\\n]{0,40}\\b(now|today|right away|asap)\\b"
+  }
 }

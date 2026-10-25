@@ -31,5 +31,9 @@
     "refuted": 100,
     "mixed": 50,
     "unverifiable": 0
+  },
+  "extraordinary": {
+    "maxDays": 30,
+    "minReturnPct": 25
   }
 }

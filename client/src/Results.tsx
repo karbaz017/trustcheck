@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { CheckResult, ClaimResult, ClaimVerdict, Evidence, MathCheck, Reason } from "../../server/src/types";
 import ImplicationCard from "./Implication";
-import { setMarketPrefill } from "./api";
 import { BAND, CLAIM_TYPE, OVERALL, TIER, VERDICT } from "./labels";
 
 const fmt = (n: number) => {
@@ -22,15 +21,15 @@ const LEANING: Record<string, string> = {
   unconfirmed: "reliable sources mostly didn't address the claims",
 };
 
-function Gauge({ score, band, color, notScored = false, leaning }: { score: number; band: string; color: string; notScored?: boolean; leaning?: string }) {
+function Gauge({ score, band, color, notScored = false, leaning, why = "nothing checkable" }: { score: number; band: string; color: string; notScored?: boolean; leaning?: string; why?: string }) {
   const L = Math.PI * 80;
   return (
     <div className="mx-auto w-56">
-      <svg viewBox="0 0 180 104" role="meter" aria-label="Evidence strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={notScored ? undefined : score} aria-valuetext={notScored ? "Not scored: nothing here can be checked against sources" : `${BAND[band]}, score ${score} out of 100${leaning ? `; ${LEANING[leaning]}` : ""}`} className="w-full">
+      <svg viewBox="0 0 180 104" role="meter" aria-label="Evidence strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={notScored ? undefined : score} aria-valuetext={notScored ? `Not scored: ${why}` : `${BAND[band]}, score ${score} out of 100${leaning ? `; ${LEANING[leaning]}` : ""}`} className="w-full">
         <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke="var(--color-slate-200)" strokeWidth="14" strokeLinecap="round" />
         <path d="M10 90 A80 80 0 0 1 170 90" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" strokeDasharray={L} strokeDashoffset={L * (1 - (notScored ? 0 : score) / 100)} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
         <text x="90" y="74" textAnchor="middle" fontSize="24" fontWeight="800" fill="var(--color-slate-900)">{notScored ? "Not scored" : BAND[band]}</text>
-        <text x="90" y="94" textAnchor="middle" fontSize="11" fill="var(--color-slate-600)">{notScored ? "nothing checkable" : `score ${score}/100`}</text>
+        <text x="90" y="94" textAnchor="middle" fontSize="11" fill="var(--color-slate-600)">{notScored ? why : `score ${score}/100`}</text>
       </svg>
       <p className="-mt-1 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Evidence strength</p>
       {!notScored && leaning && LEANING[leaning] && <p className="mt-1 text-center text-xs text-slate-700">{LEANING[leaning][0].toUpperCase() + LEANING[leaning].slice(1)}</p>}
@@ -94,7 +93,7 @@ function MathCard({ m }: { m: MathCheck }) {
   return (
     <div className="mt-4 flex items-center gap-4 rounded-xl border border-violet-300 bg-gradient-to-br from-violet-50 to-white p-4 text-violet-950">
       <div className="shrink-0 text-center">
-        <p className="text-3xl font-extrabold leading-none tracking-tight sm:text-4xl">≈ {fmt(m.output)}{pct ? "%" : "×"}</p>
+        <p className="text-3xl font-extrabold leading-none tracking-tight @lg:text-4xl">≈ {fmt(m.output)}{pct ? "%" : "×"}</p>
         <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide">in one year</p>
       </div>
       <div className="min-w-0 border-l border-violet-200 pl-4 text-sm">
@@ -111,7 +110,7 @@ function ClaimCard({ c, index }: { c: ClaimResult; index: number }) {
   const relevant = c.evidence.filter((e) => e.stance && e.stance !== "irrelevant");
   const rest = c.evidence.filter((e) => !relevant.includes(e));
   return (
-    <article className={`rounded-xl border border-l-8 border-slate-200 bg-white p-4 shadow-sm sm:p-5 ${v.border}`}>
+    <article className={`rounded-xl border border-l-8 border-slate-200 bg-white p-4 shadow-sm @lg:p-5 ${v.border}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold text-slate-500">CLAIM {index}</span>
         <Badge cls={v.badge}><span aria-hidden>{v.icon}</span> {v.text}</Badge>
@@ -150,12 +149,14 @@ const REASON_STYLE: Record<Reason["kind"], { icon: string; label: string; cls: s
   hype: { icon: "⚑", label: "Pressure language", cls: "bg-orange-100 text-orange-900 border-orange-700" },
   supported: { icon: "✓", label: "Backed by sources", cls: "bg-emerald-100 text-emerald-900 border-emerald-700" },
   not_checkable: { icon: "∅", label: "Can't be verified", cls: "bg-slate-100 text-slate-800 border-slate-500" },
+  unbacked: { icon: "⚠", label: "No reliable backing", cls: "bg-amber-100 text-amber-900 border-amber-700" },
+  expected: { icon: "↗", label: "Others predict this", cls: "bg-slate-100 text-slate-800 border-slate-500" },
 };
 
 function Reasons({ reasons, title }: { reasons: Reason[]; title: string }) {
   if (!reasons.length) return null;
   return (
-    <div className="border-t border-black/10 bg-white/80 px-5 py-4 sm:px-7">
+    <div className="border-t border-black/10 bg-white/80 px-5 py-4 @lg:px-7">
       <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">{title}</h3>
       <ol className="mt-3 space-y-3">
         {reasons.map((r, i) => {
@@ -178,7 +179,7 @@ function Reasons({ reasons, title }: { reasons: Reason[]; title: string }) {
 }
 
 function SummaryStrip({ claims }: { claims: ClaimResult[] }) {
-  const order: ClaimVerdict[] = ["supported", "mixed", "refuted", "unverifiable", "not_checkable"];
+  const order: ClaimVerdict[] = ["supported", "mixed", "refuted", "unverifiable", "expected", "unbacked", "not_checkable"];
   const counts = order.map((k) => [k, claims.filter((c) => c.verdict === k).length] as const).filter(([, n]) => n > 0);
   if (!counts.length) return null;
   return (
@@ -217,33 +218,37 @@ function CopyLink({ id }: { id: string }) {
   );
 }
 
-export default function Results({ r, scamsos = false, market = false }: { r: CheckResult; scamsos?: boolean; market?: boolean }) {
+const FACT_VERDICTS: ClaimVerdict[] = ["supported", "mixed", "refuted", "unverifiable"];
+
+export default function Results({ r, onScamSOS, onMarketContext }: { r: CheckResult; onScamSOS?: () => void; onMarketContext?: (claim: string) => void }) {
   const o = OVERALL[r.label];
+  // Predictions that were looked up are listed with the facts (they have sources), but only facts are scored.
   const checkable = r.claims.filter((c) => c.verdict !== "not_checkable");
   const uncheckable = r.claims.filter((c) => c.verdict === "not_checkable");
-  const notScored = checkable.length === 0;
+  const notScored = !r.claims.some((c) => FACT_VERDICTS.includes(c.verdict));
+  const sub = r.label === "doesnt_hold_up" && !r.claims.some((c) => c.verdict === "refuted") ? "A central prediction has no reliable backing" : o.sub;
   return (
     <section aria-labelledby="results-h" className="space-y-6">
       <h2 id="results-h" className="sr-only">Results</h2>
 
       <div className={`overflow-hidden rounded-2xl border-2 shadow-sm ${o.tint}`}>
-        <div className="grid gap-6 p-5 sm:grid-cols-[1fr_15rem] sm:p-7">
+        <div className="grid gap-6 p-5 @lg:grid-cols-[1fr_15rem] @lg:p-7">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Overall result</p>
             <div className="mt-2 flex items-center gap-3">
               <span aria-hidden className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-3xl font-black text-[#fff]" style={{ background: o.accent }}>{o.icon}</span>
               <div>
-                <p className="text-3xl font-extrabold leading-tight sm:text-4xl">{o.text}</p>
-                <p className="text-sm text-slate-700">{notScored ? "Nothing here can be checked against sources" : o.sub}</p>
+                <p className="text-3xl font-extrabold leading-tight @lg:text-4xl">{o.text}</p>
+                <p className="text-sm text-slate-700">{notScored && r.label !== "doesnt_hold_up" ? "Nothing here can be checked against sources" : sub}</p>
               </div>
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-900">{r.whyOverall}</p>
           </div>
-          <div className="self-center rounded-xl bg-white/70 p-3"><Gauge score={(r.evidence ?? r.strength).score} band={(r.evidence ?? r.strength).band} color={o.accent} notScored={notScored} leaning={r.evidence?.leaning} /></div>
+          <div className="self-center rounded-xl bg-white/70 p-3"><Gauge score={(r.evidence ?? r.strength).score} band={(r.evidence ?? r.strength).band} color={o.accent} notScored={notScored} leaning={r.evidence?.leaning} why={r.claims.some((c) => c.verdict === "expected" || c.verdict === "unbacked") ? "predictions aren't scored" : undefined} /></div>
         </div>
-        <div className="border-t border-black/10 bg-white/60 px-5 py-3 sm:px-7"><CopyLink id={r.id} /></div>
+        <div className="border-t border-black/10 bg-white/60 px-5 py-3 @lg:px-7"><CopyLink id={r.id} /></div>
         {r.reasons && <Reasons reasons={r.reasons} title={r.label === "doesnt_hold_up" ? "Why it doesn't hold up" : r.label === "holds_up" ? "Why it holds up" : "Why it needs checking"} />}
-        <div className="space-y-3 border-t border-black/10 bg-white/60 px-5 py-4 sm:px-7">
+        <div className="space-y-3 border-t border-black/10 bg-white/60 px-5 py-4 @lg:px-7">
           <SummaryStrip claims={r.claims} />
           {r.hypeFlags.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
@@ -255,11 +260,11 @@ export default function Results({ r, scamsos = false, market = false }: { r: Che
         </div>
       </div>
 
-      {scamsos && (
-        <a href="#/scamsos" className="flex items-center justify-between gap-3 rounded-xl border border-teal-300 bg-teal-50 p-4 text-teal-950 hover:bg-teal-100">
+      {onScamSOS && (
+        <button type="button" onClick={onScamSOS} className="flex w-full items-center justify-between gap-3 rounded-xl border border-teal-300 bg-teal-50 p-4 text-left text-teal-950 hover:bg-teal-100">
           <span><strong className="block">Already sent money or shared info?</strong><span className="text-sm">Get a calm, step-by-step plan and a summary you can copy for your bank.</span></span>
           <span aria-hidden className="text-xl">→</span>
-        </a>
+        </button>
       )}
 
       {checkable.length > 0 && (
@@ -273,17 +278,17 @@ export default function Results({ r, scamsos = false, market = false }: { r: Che
         <div className="space-y-3">
           <h2 className="text-xl font-extrabold">Can't be verified</h2>
           <p className="text-sm text-slate-700">Forecasts and opinions aren't facts, so no source can confirm or refute them. They're listed so you can tell them apart from the checkable claims.</p>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3 @lg:grid-cols-2">
             {uncheckable.map((c) => (
               <li key={c.id} className="rounded-xl border-2 border-dashed border-slate-400 bg-slate-50 p-4 text-sm">
                 <Badge cls={VERDICT.not_checkable.badge}>∅ {CLAIM_TYPE[c.type]}</Badge>
                 <p className="mt-2 font-semibold">{c.text}</p>
                 <p className="mt-1 text-slate-700">{c.why}</p>
                 {c.implication && <ImplicationCard imp={c.implication} />}
-                {market && (
-                  <a href="#/market" onClick={() => setMarketPrefill(c.text)} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-800 underline">
+                {onMarketContext && (
+                  <button type="button" onClick={() => onMarketContext(c.text)} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue-800 underline">
                     See market context and which way the factors lean <span aria-hidden>→</span>
-                  </a>
+                  </button>
                 )}
               </li>
             ))}
@@ -291,7 +296,7 @@ export default function Results({ r, scamsos = false, market = false }: { r: Che
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 @2xl:grid-cols-2">
         <div className="rounded-xl border border-slate-300 bg-white p-5 text-sm">
           <h2 className="text-lg font-extrabold">Limits of this check</h2>
           <ul className="mt-2 list-disc space-y-1.5 pl-5">{r.limitations.map((l) => <li key={l}>{l}</li>)}</ul>

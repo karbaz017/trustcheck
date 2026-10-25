@@ -52,7 +52,8 @@ export function computeOutlook(
   else if (balance === "mixed") verdict = "mixed";
   else verdict = (balance === "leans_up") === (dir === "up") ? "leans_toward" : "leans_against";
 
-  const quote = prediction.text ? `“${prediction.text.slice(0, 140)}”` : "the prediction";
+  // Trailing punctuation is dropped so headlines don't end in “…tomorrow.”.
+  const quote = prediction.text ? `“${prediction.text.slice(0, 140).trim().replace(/[.!?]+$/, "")}”` : "the prediction";
   const way = dir === "up" ? "upward" : "downward";
   const opposite = dir === "up" ? "downward" : "upward";
   const headline = {
@@ -66,8 +67,10 @@ export function computeOutlook(
       : "Sourced factors currently point both ways.",
   }[verdict];
 
-  const ups = drivers.filter((d) => d.direction === "up").map((d) => d.headline);
-  const downs = drivers.filter((d) => d.direction === "down").map((d) => d.headline);
+  // Mixed drivers add half weight to both sides, so they are named on both sides too.
+  const named = (k: "up" | "down") => drivers.filter((d) => d.direction === k || d.direction === "mixed").map((d) => (d.direction === "mixed" ? `${d.headline} (mixed)` : d.headline));
+  const ups = named("up");
+  const downs = named("down");
   const why = [
     `Upward pressure (weight ${up}): ${ups.length ? ups.slice(0, 4).join("; ") : "none found"}.`,
     `Downward pressure (weight ${down}): ${downs.length ? downs.slice(0, 4).join("; ") : "none found"}.`,

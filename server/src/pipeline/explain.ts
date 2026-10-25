@@ -16,6 +16,8 @@ export const TEMPLATE_WHY: Record<ClaimVerdict, string> = {
   refuted: "Reliable sources we found contradict this claim.",
   unverifiable: "We couldn't find a reliable source that confirms or contradicts this claim.",
   not_checkable: "This is a forecast or an opinion, so sources can't confirm or refute it.",
+  expected: "Reliable sources make a similar prediction, but no one can verify the future.",
+  unbacked: "No official source or trusted news outlet makes this prediction.",
 };
 
 export const TEMPLATE_OVERALL: Record<OverallLabel, string> = {
@@ -41,6 +43,11 @@ export function validateExplanations(out: Out, claims: ClaimResult[]): string | 
   if (/\be\d+\b/.test(out.whyOverall)) return "whyOverall must not cite evidence ids";
   const internal = [out.whyOverall, ...out.claims.map((c) => c.why)].find((t) => /\b[a-z]+_[a-z_]+\b/.test(t));
   if (internal) return "uses an internal code name (like needs_checking); use plain words such as 'needs checking'";
+  if ([out.whyOverall, ...out.claims.map((c) => c.why)].some((t) => /\btiers?\s*[123]\b/i.test(t)))
+    return "uses the jargon 'tier'; say 'official sources', 'trusted news or data' or 'other websites' instead";
+  // Degenerate decoding ("$100,000,,,,,,,") reads as broken output to users.
+  if ([out.whyOverall, ...out.claims.map((c) => c.why)].some((t) => /([,;:!?])\1|\.{4,}/.test(t)))
+    return "has garbled repeated punctuation; write clean sentences";
   if (containsAdvice(out.whyOverall)) return "whyOverall contains advice phrasing";
   return null;
 }

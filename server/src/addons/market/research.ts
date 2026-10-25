@@ -29,7 +29,18 @@ export function annotate(text: string, supports: { segment?: { endIndex?: number
   return out.toString("utf8");
 }
 
-export async function researchMarket(query: string): Promise<{ annotated: string; plain: string; sources: MarketSource[] }> {
+/** Grounding occasionally returns no sources for a query; one retry fixes most of those. */
+export async function researchMarket(query: string, attempts = 2): Promise<{ annotated: string; plain: string; sources: MarketSource[] }> {
+  for (let i = 1; ; i++) {
+    try {
+      return await researchOnce(query);
+    } catch (e) {
+      if (i >= attempts) throw e;
+    }
+  }
+}
+
+async function researchOnce(query: string): Promise<{ annotated: string; plain: string; sources: MarketSource[] }> {
   const res = await callModel(
     {
       systemInstruction: { parts: [{ text: SYSTEM }] },

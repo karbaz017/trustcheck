@@ -134,16 +134,35 @@ export async function getMarketBrief(query: string): Promise<MB> {
   return body;
 }
 
-/** Hand text to the Markets page without putting it in the URL. */
-export function setMarketPrefill(text: string) {
-  try { sessionStorage.setItem("marketPrefill", text); } catch { /* storage unavailable */ }
-}
-export function takeMarketPrefill(): string {
-  try {
-    const t = sessionStorage.getItem("marketPrefill") ?? "";
-    sessionStorage.removeItem("marketPrefill");
-    return t;
-  } catch {
-    return "";
+
+export interface StreamEvent { type: "progress" | "result" | "error"; stage?: string; status?: "start" | "done" | "error" | "info"; ms?: number; message?: string; lines?: string[]; brief?: MB }
+
+/** Market briefing with live progress (newline-delimited JSON). Resolves with the brief, or throws with a readable message. */
+export async function streamMarketBrief(query: string, onEvent: (e: StreamEvent) => void): Promise<MB> {
+  const res = await fetch("/api/market-brief/stream", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query }) });
+  if (!res.ok || !res.body) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? "Couldn't start the briefing.");
   }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let brief: MB | null = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i: number;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim();
+      buf = buf.slice(i + 1);
+      if (!line) continue;
+      const e = JSON.parse(line) as StreamEvent;
+      if (e.type === "result" && e.brief) brief = e.brief;
+      else if (e.type === "error") throw new Error(e.message ?? "The briefing failed.");
+      else onEvent(e);
+    }
+  }
+  if (!brief) throw new Error("The briefing ended without a result. Please try again.");
+  return brief;
 }

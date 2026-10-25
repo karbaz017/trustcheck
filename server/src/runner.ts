@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { lookupDemo } from "./demoCache.js";
 import { store } from "./db/index.js";
-import { fetchUrlText } from "./pipeline/fetchUrl.js";
+import { fetchArticle, FetchError } from "./pipeline/fetchUrl.js";
 import { MAX_INPUT_CHARS, runPipeline } from "./pipeline/run.js";
 import type { ProgressEvent } from "./types.js";
 
@@ -47,15 +47,30 @@ async function execute(id: string, input: { text?: string; url?: string }) {
   try {
     let text = input.text ?? "";
     if (input.url) {
-      publish(id, { stage: "fetch", status: "start" });
+      let host = input.url;
+      try { host = new URL(input.url).hostname.replace(/^www\./, ""); } catch { /* validated already */ }
+      publish(id, { stage: "fetch", status: "start", message: `Opening ${host}` });
       const t0 = Date.now();
-      text = await fetchUrlText(input.url);
+      let article;
+      try {
+        article = await fetchArticle(input.url);
+      } catch (e) {
+        timings.fetch = Date.now() - t0;
+        publish(id, { stage: "fetch", status: "error", ms: timings.fetch, message: (e as Error).message });
+        throw e;
+      }
+      text = article.text;
       timings.fetch = Date.now() - t0;
-      publish(id, { stage: "fetch", status: "done", ms: timings.fetch });
+      const lines = [
+        article.title ? `Title: ${article.title}` : "",
+        `Downloaded ${(article.bytes / 1024).toFixed(0)} KB${article.truncated ? " (page was very large; read the first 3 MB)" : ""}`,
+      ];
       if (text.length > MAX_INPUT_CHARS) {
         text = text.slice(0, MAX_INPUT_CHARS);
         extraLimitations.push(`Only the first ${MAX_INPUT_CHARS.toLocaleString("en-US")} characters of the article were checked.`);
+        lines.push(`Checking the first ${MAX_INPUT_CHARS.toLocaleString("en-US")} characters of the article text`);
       }
+      publish(id, { stage: "fetch", status: "done", ms: timings.fetch, message: `Read ${article.text.length.toLocaleString("en-US")} characters of text from ${article.host}`, lines: lines.filter(Boolean) });
     }
 
     const demo = lookupDemo(text);
@@ -87,7 +102,10 @@ async function execute(id: string, input: { text?: string; url?: string }) {
 }
 
 function userFacingError(e: unknown): string {
-  const err = e as Error;
-  if (err.name === "FetchError") return err.message;
+  if (e instanceof FetchError) return e.message;
+  const msg = (e as Error)?.message ?? "";
+  // Checked first: an expired login also surfaces as "Claim extraction failed after retries: invalid_grant".
+  if (/credentials|invalid_grant|reauth/i.test(msg)) return "The server can't reach the AI model (Google Cloud login expired). Ask the team to sign in again.";
+  if (/Claim extraction failed/.test(msg)) return "The AI model couldn't read this text right now. Please try again in a moment.";
   return "Something went wrong while checking. Please try again.";
 }

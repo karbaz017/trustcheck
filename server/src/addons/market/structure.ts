@@ -4,19 +4,21 @@ import { containsAdvice } from "../../pipeline/validators.js";
 import { computeOutlook } from "./outlook.js";
 import { MARKET_DISCLAIMER, type MarketBrief, type MarketSource } from "./types.js";
 
-const cited = { sourceIds: z.array(z.string()).max(6) };
+/** Keeps the first n items. A model that lists one extra analyst shouldn't fail the whole briefing. */
+const upTo = <T extends z.ZodTypeAny>(s: T, n: number) => z.array(s).transform((a) => a.slice(0, n));
+const cited = { sourceIds: upTo(z.string(), 6) };
 const opt = z.string().nullish().transform((v) => v ?? undefined);
 const out = z.object({
   subject: z.object({ name: z.string(), ticker: opt, assetType: z.enum(["stock", "etf", "crypto", "index", "commodity", "currency", "other", "unknown"]) }),
-  snapshot: z.array(z.object({ label: z.string(), value: z.string(), asOf: opt, ...cited })).max(12),
-  drivers: z.array(z.object({ headline: z.string(), explanation: z.string(), direction: z.enum(["up", "down", "mixed", "unclear"]), timeframe: opt, ...cited })).max(8),
-  fundamentals: z.array(z.object({ label: z.string(), value: z.string(), ...cited })).max(10),
-  analysts: z.array(z.object({ statement: z.string(), ...cited })).max(6),
-  upcoming: z.array(z.object({ event: z.string(), date: opt, ...cited })).max(6),
-  bullCase: z.array(z.object({ point: z.string(), ...cited })).max(5),
-  bearCase: z.array(z.object({ point: z.string(), ...cited })).max(5),
-  risks: z.array(z.object({ point: z.string(), ...cited })).max(6),
-  notFound: z.array(z.string()).max(10),
+  snapshot: upTo(z.object({ label: z.string(), value: z.string(), asOf: opt, ...cited }), 12),
+  drivers: upTo(z.object({ headline: z.string(), explanation: z.string(), direction: z.enum(["up", "down", "mixed", "unclear"]), timeframe: opt, ...cited }), 8),
+  fundamentals: upTo(z.object({ label: z.string(), value: z.string(), ...cited }), 10),
+  analysts: upTo(z.object({ statement: z.string(), ...cited }), 6),
+  upcoming: upTo(z.object({ event: z.string(), date: opt, ...cited }), 6),
+  bullCase: upTo(z.object({ point: z.string(), ...cited }), 5),
+  bearCase: upTo(z.object({ point: z.string(), ...cited }), 5),
+  risks: upTo(z.object({ point: z.string(), ...cited }), 6),
+  notFound: upTo(z.string(), 10),
   prediction: opt,
   predictionDirection: z.enum(["up", "down", "none"]),
 });

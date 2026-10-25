@@ -13,6 +13,7 @@ const claimSchema = z.object({
     .object({ kind: z.enum(["multiple", "return_pct"]), value: z.number(), periodDays: z.number() })
     .nullish(),
   queries: z.array(z.string().min(3).max(300)).length(2),
+  asset: z.string().max(60).nullish(),
   calculation: z
     .object({ kind: z.enum(CALC_NAMES as [string, ...string[]]) })
     .catchall(z.number().nullish())
@@ -38,6 +39,9 @@ export async function extractClaims(text: string): Promise<ExtractedClaim[]> {
     responseSchema: schemaFor(withCalc),
     parse: outSchema,
     label: "Claim extraction",
+    // Long articles (up to MAX_INPUT_CHARS) with unbounded thinking ran past 20s on every retry.
+    timeoutMs: 45_000,
+    thinkingBudget: 2048,
   });
   return out.claims.map((c) => ({
     text: c.text,
@@ -45,6 +49,7 @@ export async function extractClaims(text: string): Promise<ExtractedClaim[]> {
     importance: c.importance as 1 | 2 | 3,
     numeric: c.numeric ?? undefined,
     queries: [c.queries[0], c.queries[1]] as [string, string],
+    asset: c.asset?.trim() || undefined,
     calc: withCalc && c.calculation ? toCalc(c.calculation as Record<string, unknown>) : undefined,
   }));
 }

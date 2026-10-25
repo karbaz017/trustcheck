@@ -143,11 +143,59 @@ const newsBody = z.object({ topics: z.array(z.string().trim().min(2).max(60).reg
 
 addons.post("/news", gate("news"), newsLimiter, async (req, res) => {
   const parsed = newsBody.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: "Add 1 to 10 topics (letters, numbers, spaces)." });
+  if (!parsed.success) return res.status(400).json({ error: "News follows short topics like “NVDA” or “Federal Reserve” (up to 10). To check a statement or question, use “Check a claim”." });
   const topics = [...new Set(parsed.data.topics)];
   const lists = await Promise.all(topics.map((t) => newsFor(t)));
   const seen = new Set<string>();
   const items = lists.flat().filter((n) => (seen.has(n.id) ? false : (seen.add(n.id), true))).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 60);
   const body: NewsResponse = { items, fetchedAt: new Date().toISOString(), filingsEnabled: secAvailable() };
   res.json(body);
+});
+
+/**
+ * Same briefing, streamed as newline-delimited JSON so the UI can show each step:
+ *   {"type":"progress","stage":"research"|"structure"|"outlook","status":"start"|"done","message":"...","lines":[...]}
+ *   {"type":"result","brief":{...}}   or   {"type":"error","message":"..."}
+ */
+addons.post("/market-brief/stream", gate("market"), marketLimiter, async (req, res) => {
+  const parsed = marketBody.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Enter a ticker, company, or market (up to 300 characters)." });
+  const query = parsed.data.query;
+  res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-cache, no-transform", "x-accel-buffering": "no" });
+  const send = (o: unknown) => res.write(JSON.stringify(o) + "\n");
+  const key = query.toLowerCase().replace(/\s+/g, " ");
+  const hit = marketCache.get(key);
+  if (hit && Date.now() - hit.at < 10 * 60_000) {
+    send({ type: "progress", stage: "research", status: "done", message: `Using a briefing built ${Math.max(1, Math.round((Date.now() - hit.at) / 60000))} min ago` });
+    send({ type: "result", brief: hit.brief });
+    return res.end();
+  }
+  try {
+    send({ type: "progress", stage: "research", status: "start", message: `Searching Google for current data on “${query.slice(0, 80)}”` });
+    let t0 = Date.now();
+    const { annotated, sources } = await researchMarket(query);
+    const tierCount = (t: number) => sources.filter((x) => x.tier === t).length;
+    const KIND: Record<number, string> = { 1: "official source", 2: "trusted news or data", 3: "other website" };
+    send({
+      type: "progress", stage: "research", status: "done", ms: Date.now() - t0,
+      message: `Found ${sources.length} sources (${tierCount(1)} official, ${tierCount(2)} trusted news or data, ${tierCount(3)} other websites)`,
+      lines: sources.slice(0, 12).map((x) => `${x.domain} (${KIND[x.tier]})`),
+    });
+    send({ type: "progress", stage: "structure", status: "start", message: "Organising the notes and checking every number and citation against the sources" });
+    t0 = Date.now();
+    const brief = await structureBrief(query, annotated, sources);
+    const kept = brief.snapshot.length + brief.drivers.length + brief.fundamentals.length + brief.analysts.length + brief.upcoming.length + brief.bullCase.length + brief.bearCase.length + brief.risks.length;
+    send({
+      type: "progress", stage: "structure", status: "done", ms: Date.now() - t0,
+      message: brief.supported ? `Kept ${kept} cited items; dropped ${brief.dropped} that couldn't be matched to a source` : brief.message,
+      lines: brief.supported ? brief.drivers.map((d) => `${d.direction === "up" ? "▲" : d.direction === "down" ? "▼" : "◐"} ${d.headline}`) : [],
+    });
+    if (brief.outlook) send({ type: "progress", stage: "outlook", status: "done", message: brief.outlook.headline, lines: [`Upward weight ${brief.outlook.upWeight} · downward weight ${brief.outlook.downWeight}`] });
+    marketCache.set(key, { at: Date.now(), brief });
+    send({ type: "result", brief });
+  } catch (e) {
+    console.error(`[market] failed: ${(e as Error).message}`);
+    send({ type: "error", message: "We couldn't build a briefing right now. Please try again in a moment." });
+  }
+  res.end();
 });

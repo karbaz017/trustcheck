@@ -27,6 +27,9 @@ describe("math", () => {
     expect(m?.calc).toBe("implied_annualized_multiple");
     expect(m?.text).toContain("4,598x");
     expect(mathCheck({ type: "checkable_fact" })).toBeUndefined();
+    const f = mathCheck({ type: "forecast", numeric: { kind: "return_pct", value: 100, periodDays: 1 } });
+    expect(f?.inputs).toEqual({ returnPct: 100, periodDays: 1 });
+    expect(f?.text).toBe("A 100% rise in one day means the price ends at 2x where it started, so $1,000 would become $2,000.");
     expect(mathCheck({ type: "numeric", numeric: { kind: "multiple", value: -1, periodDays: 30 } })).toBeUndefined();
   });
 });
