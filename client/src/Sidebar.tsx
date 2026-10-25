@@ -147,9 +147,15 @@ export default function Sidebar(p: Props) {
               <button type="button" onClick={p.auth.logout} aria-label="Log out" title="Log out" className="rounded-lg p-2 text-slate-600 hover:bg-slate-200"><ILogOut className="h-4 w-4" /></button>
             </>
           ) : p.auth.enabled ? (
-            <button type="button" onClick={p.auth.login} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:opacity-90">
-              <ILogIn className="h-4 w-4" /> Log in to save your checks
-            </button>
+            <div className="flex-1">
+              <p className="mb-1.5 text-xs text-slate-500">Save your checks on any device</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={p.auth.signup ?? p.auth.login} className="flex-1 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:opacity-90">Sign up</button>
+                <button type="button" onClick={p.auth.login} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+                  <ILogIn className="h-4 w-4" /> Log in
+                </button>
+              </div>
+            </div>
           ) : (
             <span className="flex-1 text-xs text-slate-500">Saving to an account isn't set up</span>
           )}

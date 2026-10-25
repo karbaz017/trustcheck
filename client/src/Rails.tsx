@@ -27,7 +27,7 @@ export function LeftRail(p: { onExpand: () => void; onNew: () => void; onNews: (
         {p.auth.isAuthenticated ? (
           <button type="button" onClick={p.onExpand} aria-label={`Account: ${p.auth.email ?? ""}`} title={p.auth.email} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-sm font-semibold text-white">{initial}</button>
         ) : p.auth.enabled ? (
-          <RailButton label="Log in to save your checks" onClick={p.auth.login}><ILogIn className="h-5 w-5" /></RailButton>
+          <RailButton label="Log in or sign up to save your checks" onClick={p.auth.login}><ILogIn className="h-5 w-5" /></RailButton>
         ) : null}
       </div>
     </nav>

@@ -489,7 +489,7 @@ function Welcome({ modes, onPick, signedIn }: { modes: Mode[]; onPick: (m: Mode,
           })}
         </ul>
       </div>
-      {!signedIn && <p className="text-center text-xs text-slate-500">Tip: log in from the bottom-left to keep your checks on any device.</p>}
+      {!signedIn && <p className="text-center text-xs text-slate-500">Tip: sign up or log in (bottom-left) to keep your checks on any device. Checking works without an account.</p>}
     </div>
   );
 }
