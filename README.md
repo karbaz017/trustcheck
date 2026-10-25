@@ -107,50 +107,53 @@ The interface has three panels: chat history on the left; the conversation in th
 ## Architecture
 
 ```mermaid
-flowchart LR
-  subgraph Browser["Browser · React + Vite + Tailwind"]
-    UI["Chat UI<br/>Sidebar · Conversation · How we checked / Full report"]
-    A0["Auth0 SPA SDK"]
+flowchart TB
+  subgraph B["🖥️ Browser"]
+    UI["React chat UI"]
+    A0["Auth0 SDK"]
   end
 
-  subgraph Server["Node.js · Express API (TypeScript)"]
-    API["/api routes<br/>rate limits · Helmet · zod"]
-    PIPE["Claim-check pipeline"]
-    ADD["Add-ons<br/>market · ScamSOS · email · news · calculators"]
-    TOOLS["Live data tools<br/>(allow-listed)"]
-    CFG[("Rules as data<br/>sourceTiers · thresholds<br/>hypeTerms · playbook")]
+  subgraph S["⚙️ Express API · Node.js"]
+    API["/api routes"]
+    PIPE["Claim pipeline"]
+    ADD["Add-ons"]
+    TOOLS["Live data tools"]
+    CFG[("Rules as JSON")]
   end
 
-  subgraph Google["Google Cloud"]
-    VX["Gemini 2.5 Flash<br/>on Vertex AI"]
-    GS["Google Search<br/>grounding"]
+  subgraph G["☁️ Google Cloud"]
+    VX["Gemini 2.5 Flash"]
+    GS["Google Search"]
   end
 
-  subgraph Data["Free data sources"]
+  subgraph D["📊 Free data"]
     CG["CoinGecko"]
-    FRED["FRED (St. Louis Fed)"]
+    FRED["FRED"]
     SEC["SEC EDGAR"]
-    FH["Finnhub (optional key)"]
-    GN["Google News RSS"]
+    FH["Finnhub"]
+    GN["Google News"]
   end
 
-  DB[("PostgreSQL<br/>checks · search cache")]
+  DB[("PostgreSQL")]
   AUTH["Auth0"]
 
-  UI -- "POST /api/check<br/>SSE progress stream" --> API
-  UI -- "NDJSON market stream" --> API
-  A0 -- "login" --> AUTH
-  API -- "verify JWT (jose)" --> AUTH
-  API --> PIPE & ADD
+  UI -->|"SSE / NDJSON"| API
+  A0 -->|"login"| AUTH
+  API -->|"verify JWT"| AUTH
+  API --> PIPE
+  API --> ADD
+  API --> DB
   PIPE --> VX
+  ADD --> VX
   VX --> GS
   PIPE --> TOOLS
-  ADD --> VX
-  TOOLS --> CG & FRED & SEC & FH
+  TOOLS --> CG
+  TOOLS --> FRED
+  TOOLS --> SEC
+  TOOLS --> FH
   ADD --> GN
   PIPE --> CFG
   ADD --> CFG
-  API --> DB
 ```
 
 **How a check flows**
@@ -167,23 +170,25 @@ Market briefings stream line by line as newline-delimited JSON (NDJSON) from `/a
 
 ```mermaid
 flowchart TD
-  IN["Text or link"] --> F["fetch<br/>guarded URL fetch (code)"]
-  F --> X["extract claims<br/>Gemini, JSON schema"]
-  X --> M["math check<br/>code"]
-  M --> S["search<br/>Gemini + Google Search<br/>+ live data tools"]
-  S --> T["rank sources<br/>code lookup"]
-  T --> ST["stance per source<br/>Gemini, verbatim quotes"]
-  ST --> V["verdict per claim<br/>code thresholds"]
-  V --> H["pressure language<br/>code"]
-  H --> AG["overall label + gauge<br/>code"]
-  AG --> E["explanation<br/>Gemini + advice lint<br/>(fixed templates as fallback)"]
-  E --> OUT["Result + evidence trail"]
+  IN["📝 Text or link"] --> F["fetch<br/>(code)"]
+  F --> X["extract claims<br/>(Gemini)"]
+  X --> M["math<br/>(code)"]
+  M --> S["search<br/>(Gemini + tools)"]
+  S --> T["rank sources<br/>(code)"]
+  T --> ST["stances<br/>(Gemini)"]
+  ST --> V["verdicts<br/>(code)"]
+  V --> H["pressure words<br/>(code)"]
+  H --> AG["overall label<br/>(code)"]
+  AG --> E["explanation<br/>(Gemini + lint)"]
+  E --> OUT["✅ Result"]
 
   classDef ai fill:#ede9fe,stroke:#7c3aed,color:#1e1b4b
   classDef code fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
-  class X,ST,E ai
+  class X,S,ST,E ai
   class F,M,T,V,H,AG code
 ```
+
+<sub>🟪 AI step · 🟦 code step</sub>
 
 | Stage | Who | What happens | Where |
 |---|---|---|---|
