@@ -8,7 +8,7 @@ import {
 import { AuthBridge, type AuthState } from "./Auth";
 import { MODES, loadChats, newChat, saveChats, titleFrom, uid, type ActivityItem, type Chat, type Mode, type Turn, type TurnResult } from "./chat";
 import Composer from "./Composer";
-import { fetchNews, loadSeen, loadWatchlist, POLL_MS, saveSeen, saveWatchlist, type NewsItem } from "./newsStore";
+import { fetchNews, loadSeen, loadWatchlist, looksLikeClaim, parseTopics, POLL_MS, saveSeen, saveWatchlist, type NewsItem } from "./newsStore";
 import type { ScamPlanResponse } from "./ScamSOS";
 import Sidebar, { Logo } from "./Sidebar";
 import { IMenu, IPanelRight } from "./icons";
@@ -195,8 +195,8 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
 
   function setWatchlist(w: string[]) { setWatchlistState(w); saveWatchlist(w); }
   async function runNews(text: string) {
-    const topics = [...new Set(text.split(/[,;\n]/).map((t) => t.trim().replace(/\s+/g, " ")).filter((t) => t.length >= 2 && t.length <= 60))].slice(0, 10);
-    if (!topics.length) return;
+    const topics = parseTopics(text);
+    if (!topics.length) return void checkText(text);
     const merged = [...new Set([...watchlist, ...topics])].slice(0, 10);
     setWatchlist(merged);
     const { chatId, turnId } = addTurn("news", topics.join(", "));
@@ -241,14 +241,16 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
 
   function send(text: string) {
     if (mode === "market") return void runMarket(text);
-    if (mode === "news") return void runNews(text);
+    // "PNC is giving 100% interest?" typed in News mode is a claim, not a topic to follow.
+    if (mode === "news" && !looksLikeClaim(text)) return void runNews(text);
+    if (mode === "news") setMode("check");
     return void runCheck(text);
   }
   function retry(t: Turn) {
     if (t.mode === "email") { setMode("email"); return; }
     if (t.mode === "scamsos") return startScam();
     if (t.mode === "market") return void runMarket(t.prompt);
-    if (t.mode === "news") return void runNews(t.prompt);
+    if (t.mode === "news" && !looksLikeClaim(t.prompt)) return void runNews(t.prompt);
     void runCheck(t.prompt);
   }
   const checkText = (text: string) => { setMode("check"); setRightOpen(false); void runCheck(text); };

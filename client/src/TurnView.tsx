@@ -51,8 +51,9 @@ export const stripCites = (s: string) => s.replace(/(\s*,?\s*\[e\d+(?:\s*,\s*e\d
 /** Long explanations: first two sentences, then "Read more". */
 function Expandable({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
-  const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g) ?? [text];
-  const short = sentences.slice(0, 2).join("").trim();
+  // Split only at ". " before a capital, so "0.03%" or "$1.5 billion" never cut a sentence.
+  const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z"“(])/);
+  const short = sentences.slice(0, 2).join(" ").trim();
   const long = sentences.length > 2 && text.length > 220;
   return (
     <p className="text-[15px] leading-7 text-slate-800">

@@ -143,7 +143,7 @@ const newsBody = z.object({ topics: z.array(z.string().trim().min(2).max(60).reg
 
 addons.post("/news", gate("news"), newsLimiter, async (req, res) => {
   const parsed = newsBody.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: "Add 1 to 10 topics (letters, numbers, spaces)." });
+  if (!parsed.success) return res.status(400).json({ error: "News follows short topics like “NVDA” or “Federal Reserve” (up to 10). To check a statement or question, use “Check a claim”." });
   const topics = [...new Set(parsed.data.topics)];
   const lists = await Promise.all(topics.map((t) => newsFor(t)));
   const seen = new Set<string>();
