@@ -73,7 +73,7 @@ export async function fetchUrlText(raw: string): Promise<string> {
         dispatcher: guardedAgent,
         redirect: "manual",
         signal: AbortSignal.timeout(TIMEOUT_MS),
-        headers: { "user-agent": "TrustCheckBot/0.1 (+evidence check)", accept: "text/html,text/plain" },
+        headers: { "user-agent": "VerifinBot/0.1 (+evidence check)", accept: "text/html,text/plain" },
       });
     } catch (e) {
       const cause = (e as { cause?: unknown }).cause;

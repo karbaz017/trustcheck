@@ -70,7 +70,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
       // Notify only about items that arrive after the first load, and never for more than 3 at once.
       if (!firstPoll.current && fresh.length && typeof Notification !== "undefined" && Notification.permission === "granted") {
         for (const i of fresh.slice(0, 3)) {
-          const note = new Notification(`TrustCheck · ${i.topic}`, { body: `${i.source}: ${i.title}`, tag: i.id });
+          const note = new Notification(`Verifin · ${i.topic}`, { body: `${i.source}: ${i.title}`, tag: i.id });
           note.onclick = () => { window.focus(); window.location.hash = "#/news"; };
         }
       }
@@ -145,7 +145,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <a href="#/" className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
             <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z" className="text-blue-800" /><path d="M8.5 12l2.5 2.5 4.5-5" className="text-emerald-600" /></svg>
-            TrustCheck
+            Verifin
           </a>
           <nav aria-label="Main" className="flex items-center gap-3 text-sm font-medium">
             {features.news && (

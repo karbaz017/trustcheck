@@ -26,4 +26,4 @@ const port = Number(process.env.PORT ?? 8787);
 await store.init();
 setInterval(() => void store.purgeAnonymous(7).catch(() => {}), 3600_000).unref();
 void store.purgeAnonymous(7).catch(() => {});
-app.listen(port, () => console.log(`TrustCheck server on :${port}`));
+app.listen(port, () => console.log(`Verifin server on :${port}`));

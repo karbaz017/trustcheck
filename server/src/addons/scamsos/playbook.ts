@@ -48,7 +48,7 @@ export const DISCLAIMER = "This is general guidance, not legal or financial advi
 export function caseSummary(a: Answers, plan: Plan): string {
   const happened = a.happened.map((h) => labelOf("happened", h)).join("; ");
   const lines = [
-    "CASE SUMMARY (written by me with the help of TrustCheck ScamSOS)",
+    "CASE SUMMARY (written by me with the help of Verifin ScamSOS)",
     "",
     "Timeline",
     `- When it happened: ${labelOf("when", a.when)}`,

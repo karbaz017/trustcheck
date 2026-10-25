@@ -61,11 +61,11 @@ describe("SEC filings", () => {
     await expect(secFilingsTool({ phrase: "Hugging Face" })).rejects.toThrow(/SEC_USER_AGENT/);
   });
   it("searches, builds a safe filing URL, sends the declared User-Agent, and excerpts around the phrase", async () => {
-    process.env.SEC_USER_AGENT = "TrustCheck test contact@example.com";
+    process.env.SEC_USER_AGENT = "Verifin test contact@example.com";
     const urls: string[] = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
       urls.push(url);
-      expect((init!.headers as Record<string, string>)["User-Agent"]).toBe("TrustCheck test contact@example.com");
+      expect((init!.headers as Record<string, string>)["User-Agent"]).toBe("Verifin test contact@example.com");
       if (url.startsWith("https://efts.sec.gov/")) return json(efts);
       return new Response("<html><body><p>On September 2, 2026, NVIDIA Corporation entered into an agreement to acquire Hugging Face, Inc. The transaction is expected to close in the first half of 2027.</p></body></html>", { status: 200, headers: { "content-type": "text/html" } });
     }));

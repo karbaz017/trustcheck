@@ -35,7 +35,7 @@ export default function News(p: NewsProps) {
     <div className="space-y-6">
       <div className="rounded-2xl bg-gradient-to-br from-[#7c2d12] to-[#9a3412] p-6 text-[#fff] sm:p-8">
         <h1 className="text-3xl font-extrabold tracking-tight">News alerts</h1>
-        <p className="mt-2 max-w-2xl text-[#ffedd5]">Follow tickers and topics. We check every few minutes while TrustCheck is open and show only headlines from reliable outlets and official SEC filings. Any headline can be checked with one click.</p>
+        <p className="mt-2 max-w-2xl text-[#ffedd5]">Follow tickers and topics. We check every few minutes while Verifin is open and show only headlines from reliable outlets and official SEC filings. Any headline can be checked with one click.</p>
       </div>
 
       <section className="space-y-3 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
@@ -59,7 +59,7 @@ export default function News(p: NewsProps) {
           <p className="text-sm text-slate-600">Try: {SUGGESTIONS.map((s) => <button key={s} type="button" onClick={() => add(s)} className="mr-2 rounded-full border border-slate-300 px-2.5 py-0.5 text-xs font-semibold hover:bg-slate-100">+ {s}</button>)}</p>
         )}
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-          <span>Checks every 3 minutes while TrustCheck is open{p.fetchedAt && <> · last checked {new Date(p.fetchedAt).toLocaleTimeString()}</>}</span>
+          <span>Checks every 3 minutes while Verifin is open{p.fetchedAt && <> · last checked {new Date(p.fetchedAt).toLocaleTimeString()}</>}</span>
           <button type="button" onClick={p.onRefresh} disabled={p.loading || !p.watchlist.length} className="rounded border border-slate-400 px-2 py-0.5 font-semibold hover:bg-slate-100 disabled:opacity-50">{p.loading ? "Checking…" : "Check now"}</button>
           {perm === "default" && (
             <button type="button" onClick={async () => setPerm(await Notification.requestPermission())} className="rounded border border-slate-400 px-2 py-0.5 font-semibold hover:bg-slate-100">🔔 Turn on browser alerts</button>
