@@ -142,6 +142,7 @@ export async function runPipeline(
       evidence: staged[i],
       math: maths[i],
       implication: implications[i],
+      asset: c.asset,
       why: "",
     })),
   (cs) => ({ message: "Decided each verdict with our fixed rules (not by the AI)", lines: cs.map((c, i) => `Claim ${i + 1}: ${VERDICT_LABEL[c.verdict]}`) }));

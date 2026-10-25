@@ -97,10 +97,10 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
     patchTurn(chatId, turnId, (t) => ({ ...t, status: "error", error }));
   }, [patchTurn]);
 
-  function addTurn(m: Mode, prompt: string, status: Turn["status"] = "running"): { chatId: string; turnId: string } {
+  function addTurn(m: Mode, prompt: string, status: Turn["status"] = "running", into?: { chatId: string; context?: Turn["context"] }): { chatId: string; turnId: string } {
     const turnId = uid();
-    const turn: Turn = { id: turnId, mode: m, prompt, createdAt: Date.now(), status, activity: [] };
-    let chatId = activeId && chats.some((c) => c.id === activeId) ? activeId : null;
+    const turn: Turn = { id: turnId, mode: m, prompt, createdAt: Date.now(), status, activity: [], context: into?.context };
+    let chatId = into?.chatId ?? (activeId && chats.some((c) => c.id === activeId) ? activeId : null);
     if (!chatId) {
       const c = newChat();
       chatId = c.id;
@@ -138,14 +138,20 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
     try {
       const id = await startCheck(input);
       patchTurn(chatId, turnId, (t) => ({ ...t, checkId: id }));
-      finish(chatId, turnId, { kind: "check", check: await follow(chatId, turnId, id) });
+      const check = await follow(chatId, turnId, id);
+      finish(chatId, turnId, { kind: "check", check });
+      // A prediction or "should I buy" about a real asset: add today's market picture to the same chat.
+      // A forecast gives the briefing a direction to weigh; an opinion ("I should buy X") only names the asset.
+      const pred = check.claims.find((c) => c.asset && c.type === "forecast") ?? check.claims.find((c) => c.asset && c.type === "opinion");
+      if (pred?.asset && features.market)
+        void runMarket(pred.type === "forecast" ? pred.text : pred.asset, { chatId, context: { claim: pred.text, verdict: pred.verdict, label: check.label, asset: pred.asset } });
     } catch (e) {
       fail(chatId, turnId, (e as Error).message);
     }
   }
 
-  async function runMarket(query: string) {
-    const { chatId, turnId } = addTurn("market", query);
+  async function runMarket(query: string, into?: { chatId: string; context?: Turn["context"] }) {
+    const { chatId, turnId } = addTurn("market", query, "running", into);
     setDraft("");
     try {
       const brief = await streamMarketBrief(query, (e) => push(chatId, turnId, { stage: e.stage ?? "research", status: e.status ?? "info", message: e.message, lines: e.lines, ms: e.ms }));
@@ -307,8 +313,9 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
     const out: FollowUp[] = [];
     const scam = features.scamsos ? { label: "I already sent money or shared info", run: () => { setMode("scamsos"); startScam(); } } : null;
     if (r?.kind === "check") {
-      const pred = r.check.claims.find((c) => c.type === "forecast" || c.type === "opinion");
-      if (pred && features.market) out.push({ label: `See what's moving the market behind “${pred.text.slice(0, 40)}${pred.text.length > 40 ? "…" : ""}”`, run: () => marketFor(pred.text) });
+      // Market context is added automatically for predictions about an asset; offer it for other named assets.
+      const named = r.check.claims.find((c) => c.asset && c.type !== "forecast" && c.type !== "opinion");
+      if (named?.asset && features.market) out.push({ label: `See today's market for ${named.asset}`, run: () => marketFor(named.asset!) });
       if (scam && (r.check.label !== "holds_up" || r.check.hypeFlags.length)) out.push(scam);
       out.push({ label: "Check something else", run: () => { setMode("check"); setDraft(""); focusComposer(); } });
     } else if (r?.kind === "market" && r.brief.supported) {

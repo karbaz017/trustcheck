@@ -1,3 +1,4 @@
+import type { ClaimVerdict, OverallLabel } from "../../server/src/types";
 import type { CheckResult, ToolCallInfo } from "../../server/src/types";
 import type { EmailCheckResponse, MarketBrief, ScamPlanResponse } from "./api";
 import type { NewsItem } from "./newsStore";
@@ -59,6 +60,8 @@ export interface Turn {
   checkId?: string;
   result?: TurnResult;
   error?: string;
+  /** Set on a market briefing added automatically after a check found a prediction about an asset. */
+  context?: { claim: string; verdict: ClaimVerdict; label: OverallLabel; asset: string };
 }
 
 export interface Chat { id: string; title: string; createdAt: number; updatedAt: number; turns: Turn[] }

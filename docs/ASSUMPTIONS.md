@@ -70,3 +70,8 @@
 - **Label rule (code)**: a central `unbacked` forecast is "Doesn't hold up" when it is **extraordinary** (a move of at least `extraordinary.minReturnPct` = 25% within `extraordinary.maxDays` = 30 days, from the numbers the text states) or comes with any pressure language. Otherwise it is "Needs checking". The reason says plainly that no official source or trusted outlet makes the prediction.
 - **Math for forecasts**: a stated move and timeframe ("100% tomorrow") gives a card saying what it means (price ends at 2x, $1,000 would become $2,000) instead of compounding it into a yearly figure.
 - **Extraction**: "someone is telling me to buy X" is no longer extracted as a claim; urging is pressure. A new pressure pattern catches "buy … now/today" with words in between.
+
+## "Should I buy X?" gets the market picture (user request)
+- **Request**: answer advice-style questions with the prediction check, current market state and a summary verdict.
+- **Boundary kept**: TrustCheck still never says buy, sell or hold (spec, and it isn't a licensed advisor). The "verdict" is about the evidence: the claim's verdict plus the code-computed factor balance.
+- **How**: extraction now names the asset a claim is about (`asset`, e.g. TSLA). When a check finds a forecast (preferred) or an opinion about an asset, the app automatically adds a market briefing turn to the same chat, labelled "Added for you". That turn opens with a code-built **Bottom line**: the claim and its verdict, the current price from the cited snapshot, and which way today's sourced factors lean, followed by a fixed note that it can't tell the reader whether to buy or sell.

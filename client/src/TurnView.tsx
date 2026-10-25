@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CheckResult, ClaimResult } from "../../server/src/types";
+import type { MarketBrief } from "../../server/src/addons/market/types";
 import { STAGE_LABEL, visibleActivity } from "./Activity";
 import { MODES, type Turn } from "./chat";
 import { bySeverity, LABEL_TONE, SEV } from "./EmailCheck";
@@ -26,6 +27,22 @@ function evidenceLine(r: CheckResult): string | null {
     case "mixed": return "Trusted sources disagree";
     default: return "Most of this couldn't be confirmed by trusted sources";
   }
+}
+
+/** Combines the claim check and the market briefing in code. Says what the evidence supports, never what to do. */
+function BottomLine({ ctx, brief }: { ctx: NonNullable<Turn["context"]>; brief: MarketBrief }) {
+  const price = brief.snapshot.find((s) => /price/i.test(s.label));
+  return (
+    <div className="rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-sm">
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Bottom line</p>
+      <ul className="mt-2 space-y-1.5 leading-snug">
+        <li><span className="font-semibold">The claim: </span>“{ctx.claim}” · <span className="font-semibold">{VERDICT[ctx.verdict].text}</span> (overall: {OVERALL[ctx.label].text.toLowerCase()})</li>
+        {price && <li><span className="font-semibold">Right now: </span>{brief.subject?.name ?? ctx.asset} {price.label.toLowerCase()} {price.value}{price.asOf ? ` (${price.asOf})` : ""}</li>}
+        <li><span className="font-semibold">What's moving it: </span>{brief.outlook?.headline ?? "Not enough well-sourced information to say which way things lean."}</li>
+      </ul>
+      <p className="mt-3 text-xs text-slate-600">This shows what the evidence supports today. It can't tell you whether to buy or sell: that depends on your goals, timeline and money, and on things nobody can know in advance.</p>
+    </div>
+  );
 }
 
 /** Long explanations: first two sentences, then "Read more". */
@@ -163,7 +180,12 @@ export default function TurnView({ turn, selected, isLatest, followUps, onSelect
   const MI = MODES[turn.mode].icon;
   return (
     <div className="tc-fade space-y-4">
-      {turn.mode !== "scamsos" && (
+      {turn.context && (
+        <p className="flex items-center gap-2 border-t border-slate-200 pt-4 text-xs font-medium text-slate-500">
+          <MI className="h-3.5 w-3.5" />Added for you: today's market picture for {turn.context.asset}
+        </p>
+      )}
+      {turn.mode !== "scamsos" && !turn.context && (
         <div className="flex justify-end">
           <div className="max-w-[85%] rounded-3xl bg-slate-100 px-4 py-2.5 text-[15px] leading-6">
             {turn.mode !== "check" && <span className="mb-0.5 flex items-center gap-1 text-xs font-medium text-slate-500"><MI className="h-3.5 w-3.5" />{MODES[turn.mode].label}</span>}
@@ -203,6 +225,7 @@ export default function TurnView({ turn, selected, isLatest, followUps, onSelect
                     <ul className="space-y-1 text-sm">{r.brief.drivers.slice(0, 4).map((d) => <li key={d.headline} className="flex gap-2"><span aria-hidden className={d.direction === "up" ? "text-emerald-700" : d.direction === "down" ? "text-rose-700" : "text-amber-700"}>{d.direction === "up" ? "▲" : d.direction === "down" ? "▼" : "◐"}</span>{d.headline}</li>)}</ul>
                   </div>
                 )}
+                {turn.context && <BottomLine ctx={turn.context} brief={r.brief} />}
                 <p className="text-xs text-slate-500">{r.brief.sources.length} sources cited · information, not advice</p>
               </div>
             ) : <p className="text-[15px]">{r.brief.message}</p>

@@ -11,6 +11,7 @@ RULES
 - importance: 3 = central to the text, 2 = supporting, 1 = minor.
 - Do not extract who said something or what someone asked the reader to do ("a friend is telling me to buy X now", "this influencer says"): extract only the money claim itself, e.g. the forecast "X will rise 100% tomorrow". Urging to buy or act is pressure, not a claim.
 - numeric: for type "numeric", and for "forecast" claims that state a size and a timeframe ("will rise 100% tomorrow" = return_pct 100, periodDays 1; "will double this month" = multiple 2, periodDays 30). kind "multiple" means the value is a multiplier (doubled = 2, $1,000 to $10,000 = 10). kind "return_pct" means a percentage return (50% gain = 50). periodDays is the time period in days. Omit numeric if the text gives no period or no clear number.
+- asset: the specific tradable thing the claim is about (a stock, crypto, fund, index or commodity), as its ticker when well known (TSLA, NVDA, BTC) or else its name. null when the claim is not about one specific asset (savings accounts, deposit insurance, an unnamed "AI trading bot", the economy in general).
 - queries: exactly 2 neutral search queries per claim. The first should be phrased to find confirming evidence, the second to find contradicting evidence. Never leading or loaded wording. Keep each under 12 words.
 - Questions and hedged phrasing count. If the text asks whether something is true or a good idea ("Is X a good stock to buy?", "NVDA is gonna fall?", "X will boom because of Y?"), extract the assertion it asks about as a statement: "X is a good stock to buy" (type opinion), "NVDA will fall" (type forecast). Keep the user's own subject, numbers and timeframe; add nothing else.
 - Headlines count too. A headline implies an assertion even without a full sentence: "Nvidia and 3 AI stocks backed by hyperscaler data center spending" asserts that hyperscaler data center spending supports these stocks (checkable_fact if it describes something happening now, opinion if it is a judgment). In price headlines, "X loses $80,000" or "X breaks $100" means the price crossed that level (fell below $80,000 / rose above $100), not that it lost or gained that amount: "Bitcoin loses $80,000 as $200 million in leverage unwinds in an hour" asserts "Bitcoin fell below $80,000" and "about $200 million in leveraged positions were liquidated within an hour".
@@ -39,6 +40,7 @@ export const extractSchema = {
             required: ["kind", "value", "periodDays"],
           },
           queries: { type: "ARRAY", items: { type: "STRING" } },
+          asset: { type: "STRING", nullable: true },
         },
         required: ["text", "type", "importance", "queries"],
       },

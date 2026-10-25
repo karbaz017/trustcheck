@@ -50,6 +50,8 @@ export interface ClaimResult {
   evidence: Evidence[];
   math?: MathCheck;
   implication?: Implication;
+  /** The stock, crypto, fund or index the claim is about, if any (e.g. "TSLA", "Bitcoin"). */
+  asset?: string;
   why: string;
 }
 
@@ -88,6 +90,7 @@ export interface ExtractedClaim {
   importance: 1 | 2 | 3;
   numeric?: { kind: "multiple" | "return_pct"; value: number; periodDays: number };
   queries: [string, string];
+  asset?: string;
   /** Calculator parameters, only values the text explicitly states. Present only when the calculators add-on is on. */
   calc?: { kind: string; params: Record<string, number | null> };
 }
