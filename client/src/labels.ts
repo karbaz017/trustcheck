@@ -26,6 +26,6 @@ export const BAND: Record<string, string> = { strong: "Strong", moderate: "Moder
 
 export const TIER: Record<1 | 2 | 3, { text: string; short: string; cls: string; dots: number }> = {
   1: { text: "Tier 1 · Primary source", short: "Primary", cls: "bg-blue-100 text-blue-900 border-blue-700", dots: 3 },
-  2: { text: "Tier 2 · Reputable news", short: "News", cls: "bg-indigo-100 text-indigo-900 border-indigo-600", dots: 2 },
+  2: { text: "Tier 2 · Reputable source", short: "Reputable", cls: "bg-indigo-100 text-indigo-900 border-indigo-600", dots: 2 },
   3: { text: "Tier 3 · Other", short: "Other", cls: "bg-slate-100 text-slate-700 border-slate-400", dots: 1 },
 };
