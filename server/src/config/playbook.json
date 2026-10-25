@@ -23,7 +23,7 @@
       { "id": "secure_device", "tier": "now", "sourceUrl": "https://consumer.ftc.gov/articles/what-do-if-you-were-scammed",
         "text": "Uninstall any remote-access program the caller had you install, update your device's security software, and run a scan. Delete anything it flags. If you're unsure, ask someone you trust to help." } ] },
     { "id": "credentials", "priority": 20, "when": { "happened_any": ["shared_code_or_password", "gave_remote_access"] }, "steps": [
-      { "id": "change_passwords", "tier": "now", "ownProvider": true, "sourceUrl": "https://consumer.ftc.gov/articles/what-do-if-you-were-scammed",
+      { "id": "change_passwords", "tier": "now", "sourceUrl": "https://consumer.ftc.gov/articles/what-do-if-you-were-scammed",
         "text": "On the real site or official app (type the address yourself, don't use a link from the message), change the password for any account whose password or code you shared, and for any other account that used the same one. Turn on two-factor authentication." } ] },
     { "id": "bank_general", "priority": 25, "when": { "happened_any": ["sent_money", "shared_code_or_password", "shared_id_details", "gave_remote_access"] },
       "not": { "happened_any": ["sent_money"], "method_any": ["card", "bank_transfer", "wire", "gift_cards", "crypto"] }, "steps": [
