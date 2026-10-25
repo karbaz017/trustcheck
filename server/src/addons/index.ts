@@ -175,10 +175,11 @@ addons.post("/market-brief/stream", gate("market"), marketLimiter, async (req, r
     let t0 = Date.now();
     const { annotated, sources } = await researchMarket(query);
     const tierCount = (t: number) => sources.filter((x) => x.tier === t).length;
+    const KIND: Record<number, string> = { 1: "official source", 2: "trusted news or data", 3: "other website" };
     send({
       type: "progress", stage: "research", status: "done", ms: Date.now() - t0,
-      message: `Found ${sources.length} sources (${tierCount(1)} official, ${tierCount(2)} reputable, ${tierCount(3)} other)`,
-      lines: sources.slice(0, 12).map((x) => `${x.id.toUpperCase()} ${x.domain} (tier ${x.tier})`),
+      message: `Found ${sources.length} sources (${tierCount(1)} official, ${tierCount(2)} trusted news or data, ${tierCount(3)} other websites)`,
+      lines: sources.slice(0, 12).map((x) => `${x.domain} (${KIND[x.tier]})`),
     });
     send({ type: "progress", stage: "structure", status: "start", message: "Organising the notes and checking every number and citation against the sources" });
     t0 = Date.now();

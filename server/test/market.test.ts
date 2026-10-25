@@ -22,6 +22,12 @@ describe("computeOutlook (code decides)", () => {
     expect(against.headline).toMatch(/point upward, the opposite direction to “X will fall”/);
     expect(computeOutlook(d, SOURCES, { text: "X will soar", direction: "up" }).headline).toMatch(/say nothing about how far or how fast/);
   });
+  it("names mixed drivers on both sides, since they add weight to both", () => {
+    const o = computeOutlook([drv("mixed", ["s2"], "ETF flows"), drv("down", ["s1"], "Rates")], SOURCES, { direction: "up" });
+    expect(o.upWeight).toBeGreaterThan(0);
+    expect(o.why[0]).toBe(`Upward pressure (weight ${o.upWeight}): ETF flows (mixed).`);
+    expect(o.why[1]).toMatch(/: ETF flows \(mixed\); Rates\.$/);
+  });
   it("tier 3 alone can never make it lean (capped, so stays insufficient)", () => {
     const d = [drv("up", ["s3"]), drv("up", ["s4"]), drv("up", ["s3"])];
     expect(computeOutlook(d, SOURCES, { direction: "up" }).verdict).toBe("insufficient");
