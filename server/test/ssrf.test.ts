@@ -36,3 +36,12 @@ describe("htmlToText", () => {
     expect(t).not.toMatch(/alert|<|p\{\}/);
   });
 });
+
+describe("fetchArticle", () => {
+  it("FetchError keeps its name so the real reason reaches the user", async () => {
+    const { FetchError } = await import("../src/pipeline/fetchUrl.js");
+    const e = new FetchError("x blocks automated readers (HTTP 403)");
+    expect(e.name).toBe("FetchError");
+    expect(e).toBeInstanceOf(Error);
+  });
+});
