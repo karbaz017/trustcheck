@@ -1,9 +1,10 @@
-import type { CheckResult } from "../../server/src/types";
+import { useState } from "react";
+import type { CheckResult, ClaimResult } from "../../server/src/types";
 import { STAGE_LABEL, visibleActivity } from "./Activity";
 import { MODES, type Turn } from "./chat";
 import { LABEL_TONE, SEV } from "./EmailCheck";
-import { IActivity, IAlert, ICheck, IFile, ILink, IRefresh } from "./icons";
-import { BAND, OVERALL, VERDICT } from "./labels";
+import { IActivity, IAlert, ICheck, IChevronDown, IExternal, IFile, ILink, IRefresh } from "./icons";
+import { OVERALL, TIER, VERDICT } from "./labels";
 import { NewsList } from "./News";
 import { ScamForm, type ScamPlanResponse } from "./ScamSOS";
 import { Logo } from "./Sidebar";
@@ -12,29 +13,74 @@ const Pill = ({ cls, children }: { cls: string; children: React.ReactNode }) => 
   <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-semibold ${cls}`}>{children}</span>
 );
 const TOTAL_STEPS: Record<string, number> = { check: 9, market: 3, email: 10 };
-const LEAN: Record<string, string> = { supports: "mostly backs it up", contradicts: "mostly goes against it", mixed: "points both ways", unconfirmed: "mostly couldn't be confirmed" };
+/** One plain sentence about the evidence, for people who don't read gauges. */
+function evidenceLine(r: CheckResult): string | null {
+  const ev = r.evidence;
+  if (!ev || ev.leaning === "not_scored") return null;
+  const strength = ev.band === "strong" ? "Strong" : ev.band === "moderate" ? "Some" : "Weak";
+  switch (ev.leaning) {
+    case "supports": return `${strength} evidence backs this up`;
+    case "contradicts": return `${strength} evidence goes against this`;
+    case "mixed": return "Trusted sources disagree";
+    default: return "Most of this couldn't be confirmed by trusted sources";
+  }
+}
+
+/** Long explanations: first two sentences, then "Read more". */
+function Expandable({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g) ?? [text];
+  const short = sentences.slice(0, 2).join("").trim();
+  const long = sentences.length > 2 && text.length > 220;
+  return (
+    <p className="text-[15px] leading-7 text-slate-800">
+      {open || !long ? text : short}{" "}
+      {long && <button type="button" onClick={() => setOpen((o) => !o)} className="font-medium text-blue-800 hover:underline">{open ? "Show less" : "Read more"}</button>}
+    </p>
+  );
+}
+
+function ClaimRow({ c }: { c: ClaimResult }) {
+  const [open, setOpen] = useState(false);
+  const best = c.evidence.filter((e) => e.stance && e.stance !== "irrelevant").sort((a, b) => a.tier - b.tier)[0];
+  return (
+    <li>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        className="flex w-full items-start gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-slate-50">
+        <Pill cls={VERDICT[c.verdict].badge}><span aria-hidden>{VERDICT[c.verdict].icon}</span>{VERDICT[c.verdict].text}</Pill>
+        <span className="min-w-0 flex-1 leading-snug text-slate-800">{c.text}</span>
+        <IChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="tc-fade space-y-2 bg-slate-50 px-4 pb-3 pt-1 text-sm">
+          <p className="leading-relaxed text-slate-700">{c.why.replace(/\s*\[e\d+(,\s*e\d+)*\]/g, "")}</p>
+          {best ? (
+            <a href={best.url} target="_blank" rel="noopener noreferrer nofollow" className="block rounded-xl border border-slate-200 bg-white p-2.5 hover:border-slate-300">
+              <span className="flex items-center gap-2 text-xs text-slate-600"><span className={`rounded-full border px-1.5 py-0.5 font-semibold ${TIER[best.tier].cls}`}>{TIER[best.tier].short}</span>{best.domain}<IExternal className="ml-auto h-3.5 w-3.5" /></span>
+              {best.quote ? <span className="mt-1 block italic text-slate-800">“{best.quote}”</span> : <span className="mt-1 block text-slate-800">{best.title}</span>}
+            </a>
+          ) : c.verdict !== "not_checkable" && <p className="text-xs text-slate-500">No trusted source addressed this one.</p>}
+        </div>
+      )}
+    </li>
+  );
+}
 
 function CheckSummary({ r }: { r: CheckResult }) {
   const o = OVERALL[r.label];
-  const ev = r.evidence;
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold ${o.badge}`}><span aria-hidden>{o.icon}</span>{o.text}</span>
-        {ev && ev.leaning !== "not_scored" && <span className="text-sm text-slate-600">{BAND[ev.band]} evidence that {LEAN[ev.leaning] ?? ev.leaning}</span>}
+        {evidenceLine(r) && <span className="text-sm text-slate-600">{evidenceLine(r)}</span>}
         {r.hypeFlags.length > 0 && <Pill cls="bg-orange-100 text-orange-900 border-orange-700">⚑ Pressure words: {r.hypeFlags.slice(0, 3).join(", ")}</Pill>}
       </div>
-      <p className="text-[15px] leading-7 text-slate-800">{r.whyOverall}</p>
+      <Expandable text={r.whyOverall} />
       {r.claims.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <p className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">What we checked</p>
+          <p className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">What we checked <span className="font-normal text-slate-500">Tap a claim to see why</span></p>
           <ul className="divide-y divide-slate-100">
-            {r.claims.slice(0, 5).map((c) => (
-              <li key={c.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">
-                <Pill cls={VERDICT[c.verdict].badge}><span aria-hidden>{VERDICT[c.verdict].icon}</span>{VERDICT[c.verdict].text}</Pill>
-                <span className="min-w-0 flex-1 leading-snug text-slate-800">{c.text}</span>
-              </li>
-            ))}
+            {r.claims.slice(0, 5).map((c) => <ClaimRow key={c.id} c={c} />)}
           </ul>
           {r.claims.length > 5 && <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">+{r.claims.length - 5} more in the full report</p>}
         </div>
@@ -73,16 +119,44 @@ function Thinking({ turn }: { turn: Turn }) {
 
 const isUrl = (s: string) => /^https?:\/\/\S+$/i.test(s);
 
+export type FollowUp = { label: string; run: () => void };
+
 interface Props {
   turn: Turn;
   selected: boolean;
+  isLatest: boolean;
+  followUps: FollowUp[];
   onSelect: (tab: "activity" | "result") => void;
   onRetry: () => void;
   onCheck: (t: string) => void;
   onScamPlan: (res: ScamPlanResponse, summary: string) => void;
 }
 
-export default function TurnView({ turn, selected, onSelect, onRetry, onCheck, onScamPlan }: Props) {
+function plainText(turn: Turn): string {
+  const r = turn.result;
+  if (!r) return turn.prompt;
+  if (r.kind === "check") return [`${OVERALL[r.check.label].text}: ${r.check.whyOverall}`, ...r.check.claims.map((c) => `- ${VERDICT[c.verdict].text}: ${c.text}`), "", "Checked with TrustCheck. Evidence, not financial advice."].join("\n");
+  if (r.kind === "market") return [r.brief.subject?.name ?? turn.prompt, r.brief.outlook?.headline ?? "", ...r.brief.drivers.map((d) => `- ${d.headline}`)].join("\n");
+  if (r.kind === "scamsos") return r.plan.summary;
+  if (r.kind === "email") return [r.email.label, ...r.email.signals.map((s) => `- ${s.title}`)].join("\n");
+  return r.items.map((i) => `- ${i.source}: ${i.title}`).join("\n");
+}
+
+function CopyShare({ turn }: { turn: Turn }) {
+  const [msg, setMsg] = useState("");
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(""), 2000); };
+  const copy = async (text: string, ok: string) => { try { await navigator.clipboard.writeText(text); flash(ok); } catch { flash("Couldn't copy"); } };
+  const btn = "inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium transition hover:bg-slate-100";
+  return (
+    <>
+      <button type="button" onClick={() => copy(plainText(turn), "Copied")} className={btn}>Copy</button>
+      {turn.mode === "check" && turn.checkId && <button type="button" onClick={() => copy(`${window.location.origin}/#/check/${turn.checkId}`, "Link copied")} className={btn}>Share link</button>}
+      <span role="status" className="self-center text-xs text-emerald-700">{msg}</span>
+    </>
+  );
+}
+
+export default function TurnView({ turn, selected, isLatest, followUps, onSelect, onRetry, onCheck, onScamPlan }: Props) {
   const r = turn.result;
   const MI = MODES[turn.mode].icon;
   return (
@@ -165,6 +239,17 @@ export default function TurnView({ turn, selected, onSelect, onRetry, onCheck, o
               <button type="button" onClick={() => onSelect("activity")} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium transition hover:bg-slate-100">
                 <IActivity className="h-3.5 w-3.5" /> How we checked · {visibleActivity(turn.activity).length} steps
               </button>
+              {turn.status === "done" && r && <CopyShare turn={turn} />}
+            </div>
+          )}
+          {isLatest && turn.status === "done" && followUps.length > 0 && (
+            <div className="tc-fade mt-4">
+              <p className="mb-1.5 text-xs font-medium text-slate-500">What next?</p>
+              <div className="flex flex-wrap gap-2">
+                {followUps.map((f) => (
+                  <button key={f.label} type="button" onClick={f.run} className="rounded-2xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-left text-sm font-medium text-blue-900 transition hover:border-blue-300 hover:bg-blue-100">{f.label} →</button>
+                ))}
+              </div>
             </div>
           )}
         </div>

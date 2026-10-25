@@ -25,6 +25,14 @@ interface Props {
 }
 
 const DAY = 86_400_000;
+/** "https://www.cnbc.com/2026/10/24/nvidia-shares.html" -> "cnbc.com · nvidia shares" */
+export function prettyTitle(t: string): string {
+  const m = t.match(/^https?:\/\/(?:www\.)?([^/\s]+)(\/\S*)?$/i);
+  if (!m) return t;
+  const slug = (m[2] ?? "").split("/").filter(Boolean).pop()?.replace(/\.(html?|aspx?|php)$/i, "").replace(/[-_]+/g, " ").trim();
+  return slug && !/^\d+$/.test(slug) ? `${m[1]} · ${slug.slice(0, 50)}` : m[1];
+}
+const DOT: Record<string, string> = { holds_up: "bg-emerald-600", needs_checking: "bg-amber-500", doesnt_hold_up: "bg-rose-600" };
 function groups(chats: Chat[]) {
   const start = new Date().setHours(0, 0, 0, 0);
   const g: { label: string; items: Chat[] }[] = [
@@ -79,7 +87,7 @@ export default function Sidebar(p: Props) {
                   <button type="button" onClick={() => p.onSelect(c.id)} aria-current={c.id === p.activeId ? "page" : undefined}
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 pr-9 text-left text-sm transition ${c.id === p.activeId ? "bg-slate-200 font-medium text-slate-900" : "text-slate-700 hover:bg-slate-200/70"}`}>
                     <IChat className="h-4 w-4 shrink-0 text-slate-500" />
-                    <span className="truncate">{c.title}</span>
+                    <span className="truncate">{prettyTitle(c.title)}</span>
                   </button>
                   <button type="button" onClick={() => p.onDelete(c.id)} aria-label={`Delete “${c.title}”`} title="Delete"
                     className="absolute right-1.5 top-1/2 hidden -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:bg-slate-300 hover:text-slate-900 group-hover:block group-focus-within:block">
@@ -100,8 +108,11 @@ export default function Sidebar(p: Props) {
               {p.saved?.slice(0, 25).map((h) => (
                 <li key={h.id}>
                   <button type="button" onClick={() => p.onOpenSaved(h.id, h.preview)} className="block w-full rounded-lg px-3 py-1.5 text-left hover:bg-slate-200/70">
-                    <span className="block truncate text-sm text-slate-700">{h.preview || "(no preview)"}</span>
-                    <span className="text-[11px] text-slate-500">{h.label ? `${OVERALL[h.label].icon} ${OVERALL[h.label].text}` : h.status === "failed" ? "Couldn't finish" : "Checking…"} · {new Date(h.createdAt).toLocaleDateString()}</span>
+                    <span className="block truncate text-sm text-slate-700">{prettyTitle(h.preview) || "(no preview)"}</span>
+                    <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${h.label ? DOT[h.label] : h.status === "failed" ? "bg-slate-400" : "bg-blue-600"}`} />
+                      {h.label ? OVERALL[h.label].text : h.status === "failed" ? "Couldn't finish" : "Checking…"} · {new Date(h.createdAt).toLocaleDateString()}
+                    </span>
                   </button>
                 </li>
               ))}

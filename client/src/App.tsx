@@ -11,9 +11,10 @@ import Composer from "./Composer";
 import { fetchNews, loadSeen, loadWatchlist, POLL_MS, saveSeen, saveWatchlist, type NewsItem } from "./newsStore";
 import type { ScamPlanResponse } from "./ScamSOS";
 import Sidebar, { Logo } from "./Sidebar";
-import { IMenu, IPanelLeft, IPanelRight, IPlus } from "./icons";
+import { IMenu, IPanelRight } from "./icons";
+import { LeftRail, ResizeHandle, RightRail } from "./Rails";
 import { useTheme } from "./Theme";
-import TurnView from "./TurnView";
+import TurnView, { type FollowUp } from "./TurnView";
 
 const URL_RE = /^https?:\/\/\S+$/i;
 type Tab = "activity" | "result";
@@ -33,8 +34,14 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   // Desktop: both side panels can be collapsed; remembered between visits.
   const [sideShown, setSideShown] = useState(() => pref("tc.side", true));
   const [panelShown, setPanelShown] = useState(() => pref("tc.panel", true));
-  const [wide, setWide] = useState(() => pref("tc.wide", false));
-  useEffect(() => { savePref("tc.side", sideShown); savePref("tc.panel", panelShown); savePref("tc.wide", wide); }, [sideShown, panelShown, wide]);
+  const [panelW, setPanelW] = useState(() => prefNum("tc.panelW", 440));
+  useEffect(() => { savePref("tc.side", sideShown); savePref("tc.panel", panelShown); savePrefNum("tc.panelW", panelW); }, [sideShown, panelShown, panelW]);
+  // The report can grow until the conversation would get narrower than ~400px.
+  const [vw, setVw] = useState(() => window.innerWidth);
+  useEffect(() => { const f = () => setVw(window.innerWidth); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
+  const PANEL_MIN = 340;
+  const panelMax = Math.max(PANEL_MIN, vw - (sideShown ? 272 : 56) - 400);
+  const panelWidth = Math.min(panelMax, Math.max(PANEL_MIN, panelW));
   const isDesktop = () => window.matchMedia("(min-width: 1180px)").matches;
   const showPanel = () => (isDesktop() ? setPanelShown(true) : setRightOpen(true));
   const [saved, setSaved] = useState<HistoryItem[] | null>(null);
@@ -108,6 +115,12 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
 
   const onProgress = (chatId: string, turnId: string) => (e: ProgressEvent) => {
     if (e.stage === "done") return;
+    // A link's chat gets the article's real title instead of the web address.
+    const title = e.stage === "fetch" && e.status === "done" ? e.lines?.find((l) => l.startsWith("Title: "))?.slice(7).trim() : undefined;
+    if (title) {
+      const host = (e.message?.match(/from ([\w.-]+)$/) ?? [])[1];
+      setChats((cs) => cs.map((c) => (c.id === chatId && c.turns[0]?.id === turnId ? { ...c, title: titleFrom(host ? `${title} · ${host}` : title) } : c)));
+    }
     push(chatId, turnId, { stage: e.stage, status: e.status, message: e.message, lines: e.lines, ms: e.ms, tool: e.tool });
   };
 
@@ -288,6 +301,31 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
     if (watchlist.length) void runNews(watchlist.join(", "));
   };
 
+  const focusComposer = () => setTimeout(() => document.getElementById("composer")?.focus(), 0);
+  function followUpsFor(t: Turn): FollowUp[] {
+    const r = t.result;
+    const out: FollowUp[] = [];
+    const scam = features.scamsos ? { label: "I already sent money or shared info", run: () => { setMode("scamsos"); startScam(); } } : null;
+    if (r?.kind === "check") {
+      const pred = r.check.claims.find((c) => c.type === "forecast" || c.type === "opinion");
+      if (pred && features.market) out.push({ label: `See what's moving the market behind “${pred.text.slice(0, 40)}${pred.text.length > 40 ? "…" : ""}”`, run: () => marketFor(pred.text) });
+      if (scam && (r.check.label !== "holds_up" || r.check.hypeFlags.length)) out.push(scam);
+      out.push({ label: "Check something else", run: () => { setMode("check"); setDraft(""); focusComposer(); } });
+    } else if (r?.kind === "market" && r.brief.supported) {
+      const name = r.brief.subject?.ticker ?? r.brief.subject?.name ?? t.prompt;
+      if (features.news) out.push({ label: `Follow news about ${name}`, run: () => { setMode("news"); void runNews(name); } });
+      out.push({ label: `Check a claim about ${name}`, run: () => { setMode("check"); setDraft(`${name} `); focusComposer(); } });
+    } else if (r?.kind === "news" && r.items[0]) {
+      out.push({ label: "Check the top headline", run: () => checkText(r.items[0].title) });
+    } else if (r?.kind === "email") {
+      if (scam && r.email.signals.some((x) => x.severity === "high")) out.push({ ...scam, label: "I clicked a link or replied to it" });
+      out.push({ label: "Check another email", run: () => setMode("email") });
+    } else if (r?.kind === "scamsos") {
+      out.push({ label: "Check the message they sent you", run: () => { setMode("check"); setDraft(""); focusComposer(); } });
+    }
+    return out.slice(0, 3);
+  }
+
   const selectTurn = (t: Turn, tab: Tab) => { setSel({ turnId: t.id, tab }); showPanel(); };
 
   const sidebar = (mobile: boolean) => (
@@ -305,7 +343,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
   );
   const panel = (mobile: boolean) => (
     <ActivityPanel turn={selectedTurn} tab={sel.tab} setTab={(tab) => setSel((s) => ({ turnId: s.turnId ?? selectedTurn?.id ?? null, tab }))}
-      wide={wide} setWide={mobile ? undefined : setWide} onClose={mobile ? () => setRightOpen(false) : () => setPanelShown(false)}
+      wide={panelWidth >= panelMax - 8} setWide={mobile ? undefined : (w) => setPanelW(w ? panelMax : 440)} onClose={mobile ? () => setRightOpen(false) : () => setPanelShown(false)}
       onCheck={checkText} onScamSOS={features.scamsos ? () => { setMode("scamsos"); startScam(); } : undefined} onMarketContext={features.market ? marketFor : undefined} />
   );
   const iconBtn = "rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900";
@@ -314,7 +352,12 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
     <div className="flex h-dvh overflow-hidden bg-white text-slate-900">
       {authEnabled && <AuthBridge onChange={setAuth} />}
 
-      <div className={`hidden shrink-0 overflow-hidden transition-[width] duration-200 lg:flex ${sideShown ? "w-[272px]" : "w-0"}`}>{sidebar(false)}</div>
+      <div className="hidden shrink-0 lg:flex">
+        {sideShown ? sidebar(false) : (
+          <LeftRail onExpand={() => setSideShown(true)} onNew={() => { setActiveId(null); setSel({ turnId: null, tab: "activity" }); setDraft(""); setMode("check"); }}
+            onNews={features.news ? openNews : null} newsUnread={newsUnread} auth={auth} />
+        )}
+      </div>
       {leftOpen && (
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setLeftOpen(false)} aria-hidden />
@@ -325,13 +368,10 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
       <main id="main" className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-1 px-2 py-2 sm:px-3">
           <button type="button" onClick={() => setLeftOpen(true)} aria-label="Open menu" className={`${iconBtn} lg:hidden`}><IMenu className="h-5 w-5" /></button>
-          {!sideShown && <button type="button" onClick={() => setSideShown(true)} aria-label="Show sidebar" title="Show sidebar" className={`${iconBtn} hidden lg:block`}><IPanelLeft className="h-5 w-5" /></button>}
-          {!sideShown && <button type="button" onClick={() => { setActiveId(null); setMode("check"); }} aria-label="New check" title="New check" className={`${iconBtn} hidden lg:block`}><IPlus className="h-5 w-5" /></button>}
           <h1 className="min-w-0 truncate px-1 text-sm font-semibold text-slate-800">{active?.title ?? "New check"}</h1>
           <div className="ml-auto flex items-center gap-1">
             {busy && <span className="mr-1 flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-700" aria-hidden />Checking</span>}
             <button type="button" onClick={() => setRightOpen(true)} className={`${iconBtn} flex items-center gap-1.5 min-[1180px]:hidden`} aria-label="Show how we checked"><IPanelRight className="h-5 w-5" /><span className="hidden text-sm font-medium sm:inline">How we checked</span></button>
-            {!panelShown && turns.length > 0 && <button type="button" onClick={() => setPanelShown(true)} className={`${iconBtn} hidden items-center gap-1.5 min-[1180px]:flex`} aria-label="Show how we checked" title="Show how we checked"><IPanelRight className="h-5 w-5" /><span className="text-sm font-medium">How we checked</span></button>}
           </div>
         </header>
 
@@ -346,7 +386,7 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
               }} />
             ) : (
               turns.map((t) => (
-                <TurnView key={t.id} turn={t} selected={t.id === selectedTurn?.id}
+                <TurnView key={t.id} turn={t} selected={t.id === selectedTurn?.id} isLatest={t.id === turns[turns.length - 1]?.id} followUps={followUpsFor(t)}
                   onSelect={(tab) => selectTurn(t, tab)} onRetry={() => retry(t)} onCheck={checkText} onScamPlan={onScamPlan(active!.id, t.id)} />
               ))
             )}
@@ -358,7 +398,18 @@ export default function App({ authEnabled }: { authEnabled: boolean }) {
           watchlist={watchlist} onRemoveTopic={(t) => setWatchlist(watchlist.filter((x) => x !== t))} />
       </main>
 
-      <div className={`hidden shrink-0 overflow-hidden transition-[width] duration-200 min-[1180px]:flex ${panelShown && turns.length > 0 ? (wide ? "w-[min(760px,52vw)]" : "w-[420px]") : "w-0"}`}>{panelShown && turns.length > 0 && panel(false)}</div>
+      {turns.length > 0 && (
+        panelShown ? (
+          <div className="relative hidden shrink-0 min-[1180px]:flex" style={{ width: panelWidth }}>
+            <ResizeHandle width={panelWidth} setWidth={setPanelW} min={PANEL_MIN} max={panelMax} onReset={() => setPanelW(440)} />
+            {panel(false)}
+          </div>
+        ) : (
+          <div className="hidden shrink-0 min-[1180px]:flex">
+            <RightRail live={busy} hasResult={!!selectedTurn?.result} onOpen={(tab) => { setSel((s) => ({ turnId: s.turnId ?? selectedTurn?.id ?? null, tab })); setPanelShown(true); }} />
+          </div>
+        )
+      )}
       {rightOpen && (
         <div className="fixed inset-0 z-40 flex justify-end min-[1180px]:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setRightOpen(false)} aria-hidden />
@@ -377,6 +428,17 @@ function pref(key: string, fallback: boolean): boolean {
     return fallback;
   }
 }
+function prefNum(key: string, fallback: number): number {
+  try {
+    const v = Number(localStorage.getItem(key));
+    return Number.isFinite(v) && v > 0 ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function savePrefNum(key: string, v: number) {
+  try { localStorage.setItem(key, String(Math.round(v))); } catch { /* storage unavailable */ }
+}
 function savePref(key: string, v: boolean) {
   try { localStorage.setItem(key, v ? "1" : "0"); } catch { /* storage unavailable */ }
 }
@@ -384,12 +446,12 @@ function savePref(key: string, v: boolean) {
 function Welcome({ modes, onPick, signedIn }: { modes: Mode[]; onPick: (m: Mode, example?: string) => void; signedIn: boolean }) {
   const steps = ["Paste something you saw online", "We check it against trusted sources", "You see what holds up, and why"];
   return (
-    <div className="tc-fade @container space-y-8 pt-6 sm:pt-12">
+    <div className="tc-fade @container space-y-6 pt-2 sm:pt-8">
       <div className="text-center">
-        <span className="mx-auto mb-4 flex w-fit"><Logo size="h-12 w-12" /></span>
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Saw a money claim online?</h2>
-        <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-slate-600">Paste it here. We'll check it against trusted sources and live data, and explain what holds up in plain English. We never tell you what to do with your money.</p>
-        <ol className="mx-auto mt-5 flex max-w-xl flex-col items-center justify-center gap-2 text-sm @2xl:flex-row @2xl:gap-4">
+        <span className="mx-auto mb-3 flex w-fit"><Logo size="h-10 w-10" /></span>
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Saw a money claim online?</h2>
+        <p className="mx-auto mt-2 max-w-lg text-[15px] leading-relaxed text-slate-600">Paste it here. We'll check it against trusted sources and live data, and explain what holds up in plain English. We never tell you what to do with your money.</p>
+        <ol className="mx-auto mt-4 flex max-w-xl flex-col items-center justify-center gap-2 text-sm @2xl:flex-row @2xl:gap-4">
           {steps.map((s, i) => (
             <li key={s} className="flex items-center gap-2 text-slate-700"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-800">{i + 1}</span>{s}</li>
           ))}
@@ -397,18 +459,18 @@ function Welcome({ modes, onPick, signedIn }: { modes: Mode[]; onPick: (m: Mode,
       </div>
       <div>
         <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Or try one of these</p>
-        <ul className="grid gap-3 @xl:grid-cols-2">
+        <ul className="grid gap-3 @xl:grid-cols-2 @4xl:grid-cols-3">
           {modes.map((m) => {
             const MI = MODES[m].icon;
             return (
-              <li key={m} className="group rounded-2xl border border-slate-200 p-4 transition hover:border-slate-300 hover:shadow-sm">
+              <li key={m} className="group rounded-2xl border border-slate-200 p-3.5 transition hover:border-slate-300 hover:shadow-sm">
                 <button type="button" onClick={() => onPick(m)} className="flex w-full items-start gap-3 text-left">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><MI className="h-[18px] w-[18px]" /></span>
                   <span><span className="block font-semibold">{MODES[m].label}</span><span className="block text-sm leading-snug text-slate-600">{MODES[m].desc}</span></span>
                 </button>
                 {MODES[m].examples.length > 0 && (
-                  <ul className="mt-3 space-y-1.5">
-                    {MODES[m].examples.slice(0, 2).map((ex) => (
+                  <ul className="mt-2.5 space-y-1.5">
+                    {MODES[m].examples.slice(0, 1).map((ex) => (
                       <li key={ex}><button type="button" onClick={() => onPick(m, ex)} className="w-full truncate rounded-xl bg-slate-50 px-3 py-2 text-left text-[13px] text-slate-700 transition hover:bg-slate-100" title={ex}>“{ex}”</button></li>
                     ))}
                   </ul>

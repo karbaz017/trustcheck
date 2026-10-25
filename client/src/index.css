@@ -4,7 +4,12 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-body { @apply bg-white text-slate-900 antialiased; font-feature-settings: "cv11", "ss01"; }
+/* Base rules live in the base layer so component utilities (like "no outline here") can override them. */
+@layer base {
+  body { @apply bg-white text-slate-900 antialiased; font-feature-settings: "cv11", "ss01"; }
+  :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+  .dark :focus-visible { outline-color: #93c5fd; }
+  }
 
 /* Motion: subtle, and off for people who ask for less. */
 @keyframes tc-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -22,7 +27,6 @@ body { @apply bg-white text-slate-900 antialiased; font-feature-settings: "cv11"
   .tc-shimmer { color: var(--color-slate-700); background: none; }
 }
 .tc-scroll { scrollbar-width: thin; scrollbar-color: var(--color-slate-300) transparent; }
-:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
 
 /* Dark mode: remap the palette variables Tailwind utilities read, so components need no per-class dark: variants. */
 .dark {
@@ -46,4 +50,3 @@ body { @apply bg-white text-slate-900 antialiased; font-feature-settings: "cv11"
   --color-violet-50: #1e1038; --color-violet-100: #2e1065; --color-violet-700: #a78bfa; --color-violet-200: #5b21b6; --color-violet-300: #7c3aed; --color-violet-800: #c4b5fd; --color-violet-900: #ddd6fe; --color-violet-950: #ede9fe;
   --color-teal-50: #042f2e; --color-teal-100: #0b4a47; --color-teal-700: #2dd4bf; --color-teal-900: #99f6e4; --color-teal-300: #0f766e; --color-teal-800: #5eead4; --color-teal-950: #ccfbf1; --color-orange-100: #4a2208; --color-orange-700: #fb923c; --color-orange-900: #fed7aa;
 }
-.dark :focus-visible { outline-color: #93c5fd; }

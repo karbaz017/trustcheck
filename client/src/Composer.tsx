@@ -68,7 +68,7 @@ export default function Composer(p: Props) {
           </div>
         )}
         <form onSubmit={(e) => { e.preventDefault(); send(); }}
-          className="rounded-[26px] border border-slate-200 bg-white shadow-[0_8px_30px_-12px_rgba(15,23,42,0.25)] transition focus-within:border-slate-300 focus-within:shadow-[0_10px_40px_-12px_rgba(37,99,235,0.35)]">
+          className="rounded-[26px] border border-slate-200 bg-white shadow-[0_8px_30px_-12px_rgba(15,23,42,0.25)] transition focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-100 focus-within:shadow-[0_10px_40px_-12px_rgba(37,99,235,0.35)]">
           {p.mode === "email" ? (
             <div className="flex flex-wrap items-center gap-3 px-4 pb-1 pt-4 text-sm">
               <input ref={fileInput} id="eml" type="file" accept=".eml,message/rfc822" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -84,7 +84,7 @@ export default function Composer(p: Props) {
               <label htmlFor="composer" className="sr-only">{m.label}</label>
               <textarea id="composer" ref={ta} rows={1} value={p.draft} onChange={(e) => p.setDraft(e.target.value)} placeholder={m.placeholder}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }}
-                className="tc-scroll block max-h-56 w-full resize-none bg-transparent px-5 pt-4 text-[15px] leading-6 outline-none placeholder:text-slate-500" />
+                className="tc-scroll block max-h-56 w-full resize-none bg-transparent px-5 pt-4 text-[15px] leading-6 outline-none placeholder:text-slate-500 focus-visible:outline-none" />
             </>
           )}
           <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-2">
