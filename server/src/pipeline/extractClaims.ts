@@ -38,6 +38,9 @@ export async function extractClaims(text: string): Promise<ExtractedClaim[]> {
     responseSchema: schemaFor(withCalc),
     parse: outSchema,
     label: "Claim extraction",
+    // Long articles (up to MAX_INPUT_CHARS) with unbounded thinking ran past 20s on every retry.
+    timeoutMs: 45_000,
+    thinkingBudget: 2048,
   });
   return out.claims.map((c) => ({
     text: c.text,

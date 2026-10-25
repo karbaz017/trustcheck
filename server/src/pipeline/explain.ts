@@ -43,6 +43,9 @@ export function validateExplanations(out: Out, claims: ClaimResult[]): string | 
   if (internal) return "uses an internal code name (like needs_checking); use plain words such as 'needs checking'";
   if ([out.whyOverall, ...out.claims.map((c) => c.why)].some((t) => /\btiers?\s*[123]\b/i.test(t)))
     return "uses the jargon 'tier'; say 'official sources', 'trusted news or data' or 'other websites' instead";
+  // Degenerate decoding ("$100,000,,,,,,,") reads as broken output to users.
+  if ([out.whyOverall, ...out.claims.map((c) => c.why)].some((t) => /([,;:!?])\1|\.{4,}/.test(t)))
+    return "has garbled repeated punctuation; write clean sentences";
   if (containsAdvice(out.whyOverall)) return "whyOverall contains advice phrasing";
   return null;
 }
