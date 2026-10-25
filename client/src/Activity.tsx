@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActivityItem, Turn } from "./chat";
 import { EmailSignalsView } from "./EmailCheck";
 import { IActivity, IAlert, ICheck, IExternal, IFile, ISearch, IWrench, IX } from "./icons";
@@ -123,6 +123,48 @@ interface PanelProps {
 
 /** Right-hand panel: each step and tool call, and the full report for the selected message. */
 export default function ActivityPanel(p: PanelProps) {
+  const box = useRef<HTMLDivElement>(null);
+  const follow = useRef(true); // stick to the newest step until the reader scrolls up
+  const [behind, setBehind] = useState(false);
+  const count = p.turn?.activity.length ?? 0;
+  const live = p.tab === "activity" && p.turn?.status === "running";
+
+  const content = useRef<HTMLDivElement>(null);
+
+  const toBottom = () => {
+    const el = box.current;
+    if (el) el.scrollTop = el.scrollHeight; // instant: a smooth scroll fires scroll events that look like the reader scrolling up
+    follow.current = true;
+    setBehind(false);
+  };
+  // New message or tab: start following again (activity), or start at the top (report).
+  useEffect(() => {
+    follow.current = true;
+    setBehind(false);
+    if (p.tab === "activity") toBottom();
+    else if (box.current) box.current.scrollTop = 0;
+  }, [p.turn?.id, p.tab]);
+  // Follow any growth of the content (new steps, steps fading in, "show more"), as long as the reader is at the bottom.
+  useEffect(() => {
+    const el = box.current;
+    const inner = content.current;
+    if (!el || !inner || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => { if (p.tab === "activity" && follow.current) el.scrollTop = el.scrollHeight; });
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [p.tab, p.turn?.id]);
+  // If the reader has scrolled up, don't yank them down; offer a button instead.
+  useEffect(() => {
+    if (p.tab === "activity" && !follow.current && count > 0) setBehind(true);
+  }, [count]);
+  const onScroll = () => {
+    const el = box.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    follow.current = atBottom;
+    if (atBottom) setBehind(false);
+  };
+
   return (
     <aside aria-label="How we checked and full report" className="flex h-full w-full flex-col border-l border-slate-200 bg-white">
       <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2.5">
@@ -145,7 +187,9 @@ export default function ActivityPanel(p: PanelProps) {
           <button type="button" onClick={p.onClose} aria-label="Hide panel" title="Hide panel" className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"><IX className="h-4 w-4" /></button>
         </div>
       </div>
-      <div className="tc-scroll @container min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="relative min-h-0 flex-1">
+      <div ref={box} onScroll={onScroll} className="tc-scroll @container h-full overflow-y-auto p-4">
+        <div ref={content}>
         {!p.turn ? (
           <div className="mx-auto mt-10 max-w-xs text-center">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><IActivity className="h-6 w-6" /></span>
@@ -158,6 +202,14 @@ export default function ActivityPanel(p: PanelProps) {
             {p.tab === "activity" ? <ActivityList turn={p.turn} /> : <Artifact turn={p.turn} onCheck={p.onCheck} onScamSOS={p.onScamSOS} onMarketContext={p.onMarketContext} />}
           </>
         )}
+        </div>
+      </div>
+      {behind && p.tab === "activity" && (
+        <button type="button" onClick={() => toBottom()} className="tc-fade absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-lg hover:bg-slate-50">
+          {live && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-700" aria-hidden />}
+          Jump to latest step ↓
+        </button>
+      )}
       </div>
     </aside>
   );
