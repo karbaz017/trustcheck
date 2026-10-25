@@ -45,6 +45,9 @@ function BottomLine({ ctx, brief }: { ctx: NonNullable<Turn["context"]>; brief: 
   );
 }
 
+/** Drops citation markers like "[e1]", "[e1, e2]" or "[e1], [e2]" together with the commas between them. */
+export const stripCites = (s: string) => s.replace(/(\s*,?\s*\[e\d+(?:\s*,\s*e\d+)*\])+/g, "");
+
 /** Long explanations: first two sentences, then "Read more". */
 function Expandable({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
@@ -72,7 +75,7 @@ function ClaimRow({ c }: { c: ClaimResult }) {
       </button>
       {open && (
         <div className="tc-fade space-y-2 bg-slate-50 px-4 pb-3 pt-1 text-sm">
-          <p className="leading-relaxed text-slate-700">{c.why.replace(/\s*\[e\d+(,\s*e\d+)*\]/g, "")}</p>
+          <p className="leading-relaxed text-slate-700">{stripCites(c.why)}</p>
           {best ? (
             <a href={best.url} target="_blank" rel="noopener noreferrer nofollow" className="block rounded-xl border border-slate-200 bg-white p-2.5 hover:border-slate-300">
               <span className="flex items-center gap-2 text-xs text-slate-600"><span className={`rounded-full border px-1.5 py-0.5 font-semibold ${TIER[best.tier].cls}`}>{TIER[best.tier].short}</span>{best.domain}<IExternal className="ml-auto h-3.5 w-3.5" /></span>
